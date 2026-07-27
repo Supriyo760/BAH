@@ -1,7 +1,6 @@
 """
-KAVACH — GEO Radiation Monitor | Streamlit Operator Dashboard
+KAVACH — GEO Radiation Monitor | Streamlit Operator Dashboard (ISRO Mission Control UI)
 Bharatiya Antariksh Hackathon 2026 | Team DigiIndia | PS-14 ISRO
-Self-contained: no local kavach package imports required.
 """
 import sys, os
 import numpy as np
@@ -9,7 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-# ─── Page Config (MUST be first Streamlit command) ────────────────────────────
+# ─── Page Config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="KAVACH — GEO Radiation Monitor",
     page_icon="🛡️",
@@ -131,22 +130,82 @@ if st.sidebar.button("🔄 Sync GPU Weights from Cloud"):
         except Exception as e:
             st.sidebar.warning(f"Could not fetch weights from '{hf_repo_name}'. Make sure the Hugging Face repo exists and is public! Notice: {e}")
 
-# ─── CSS ──────────────────────────────────────────────────────────────────────
+# ─── Ultra-Premium Glassmorphism CSS ─────────────────────────────────────────
 st.markdown("""
 <style>
-  [data-testid="stAppViewContainer"] { background: #0E1117; }
-  .risk-red    { background:rgba(255,75,75,0.12); border:1px solid #FF4B4B;
-                 border-radius:12px; padding:16px; color:#FF4B4B; margin-bottom:8px; }
-  .risk-yellow { background:rgba(255,193,7,0.12); border:1px solid #FFC107;
-                 border-radius:12px; padding:16px; color:#FFC107; margin-bottom:8px; }
-  .risk-green  { background:rgba(40,167,69,0.12); border:1px solid #28A745;
-                 border-radius:12px; padding:16px; color:#28A745; margin-bottom:8px; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+  
+  html, body, [data-testid="stAppViewContainer"] {
+      background: #0B0F19 !important;
+      font-family: 'Inter', sans-serif;
+  }
+  
+  .stMetric {
+      background: rgba(15, 23, 42, 0.75) !important;
+      border: 1px solid rgba(0, 229, 255, 0.25) !important;
+      border-radius: 14px !important;
+      padding: 18px !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      backdrop-filter: blur(12px) !important;
+  }
+
+  .pulse-badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background-color: #00E676;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #00E676;
+      margin-right: 8px;
+  }
+  
+  .risk-red {
+      background: rgba(255, 45, 85, 0.12) !important;
+      border: 1px solid #FF2D55 !important;
+      border-radius: 14px !important;
+      padding: 20px !important;
+      color: #FF2D55 !important;
+      box-shadow: 0 0 25px rgba(255, 45, 85, 0.25) !important;
+      margin-bottom: 12px;
+  }
+  
+  .risk-yellow {
+      background: rgba(255, 179, 0, 0.12) !important;
+      border: 1px solid #FFB300 !important;
+      border-radius: 14px !important;
+      padding: 20px !important;
+      color: #FFB300 !important;
+      box-shadow: 0 0 25px rgba(255, 179, 0, 0.25) !important;
+      margin-bottom: 12px;
+  }
+  
+  .risk-green {
+      background: rgba(0, 230, 118, 0.12) !important;
+      border: 1px solid #00E676 !important;
+      border-radius: 14px !important;
+      padding: 20px !important;
+      color: #00E676 !important;
+      box-shadow: 0 0 25px rgba(0, 230, 118, 0.25) !important;
+      margin-bottom: 12px;
+  }
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Header ───────────────────────────────────────────────────────────────────
-st.markdown("# 🛡️ KAVACH  —  GEO Radiation Monitor")
-st.caption("Bharatiya Antariksh Hackathon 2026 | Team DigiIndia | PS-14 ISRO (GSAT-19 Payload Focus)")
+# ─── ISRO Mission Control Header ──────────────────────────────────────────────
+header_col1, header_col2 = st.columns([3, 1])
+with header_col1:
+    st.markdown('# 🛡️ KAVACH  —  GEO Radiation Monitor')
+    st.caption('Bharatiya Antariksh Hackathon 2026 | Team DigiIndia | PS-14 ISRO (GSAT-19 Payload Focus)')
+
+with header_col2:
+    st.markdown("""
+    <div style="text-align: right; padding-top: 10px;">
+        <span class="pulse-badge"></span>
+        <span style="color: #00E676; font-weight: 600; font-size: 0.9em;">LIVE GROUND TELEMETRY</span><br>
+        <span style="color: #888; font-size: 0.8em;">GSAT-19 Orbit: 48°E GEO Slot</span>
+    </div>
+    """, unsafe_allow_html=True)
+
 st.markdown("---")
 
 # ─── Current State ────────────────────────────────────────────────────────────
@@ -176,7 +235,7 @@ r12h, msg12h = risk_level(f12h, u12h)
 mean_agree = float(np.mean([a30m, a6h, a12h]) * 100)
 confidence = float(np.clip(mean_agree * 0.8 + 20, 10, 95))
 
-# ─── Top Metric Cards ─────────────────────────────────────────────────────────
+# ─── Top Telemetry Metric Cards ───────────────────────────────────────────────
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Live Flux (>2 MeV)",   f"{flux:.2e} pfu",     f"{'+18%' if kp>4 else '-5%'} vs 1h ago")
 c2.metric("Regime State",          REGIME_LABELS[regime], f"Kp={kp:.1f}, Dst={dst:.0f} nT")
@@ -185,7 +244,7 @@ c4.metric("ML vs Physics Agreement", f"{mean_agree:.0f}%", "Ensemble Fusion")
 
 st.markdown("---")
 
-# ─── Risk Alert Cards ─────────────────────────────────────────────────────────
+# ─── Multi-Horizon Risk Alert Cards ───────────────────────────────────────────
 st.subheader("🚨 Multi-Horizon Probabilistic Risk Forecast")
 r1, r2, r3 = st.columns(3)
 
@@ -197,9 +256,9 @@ def risk_card(col, horizon, risk, fval, msg):
     col.markdown(f"""
 <div class="{cls}">
   <h4 style="margin:0">{icon} {horizon}: {risk} RISK</h4>
-  <h3 style="margin:8px 0">{fv:.2e} pfu</h3>
-  <p style="margin:0;font-size:.9em"><b>90% Band:</b> [{lo:.1e} – {hi:.1e}] pfu</p>
-  <p style="margin:4px 0 0;font-size:.85em;opacity:.9"><i>{msg}</i></p>
+  <h3 style="margin:8px 0; font-size:1.8em; font-weight:700;">{fv:.2e} pfu</h3>
+  <p style="margin:0;font-size:.9em"><b>90% Confidence Band:</b> [{lo:.1e} – {hi:.1e}] pfu</p>
+  <p style="margin:6px 0 0;font-size:.85em;opacity:.95"><i>{msg}</i></p>
 </div>""", unsafe_allow_html=True)
 
 risk_card(r1, "T+30 min (Mandatory Warning)", r30m, f30m, msg30m)
@@ -208,7 +267,7 @@ risk_card(r3, "T+12 hr (Extended)",           r12h, f12h, msg12h)
 
 st.markdown("---")
 
-# ─── Plotly Time-Series ───────────────────────────────────────────────────────
+# ─── Plotly Time-Series Chart ─────────────────────────────────────────────────
 st.subheader("📈 Electron Flux Time-Series & Multi-Engine Forecast Horizon")
 
 hist_n   = min(len(df), 150)
@@ -224,29 +283,30 @@ p90_f    = 10**(tft_f + 0.25)
 
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=t_hist, y=f_hist, name="Observed Flux (GOES/GRASP)",
-              line=dict(color="#3388FF", width=2.5)))
+              line=dict(color="#00F0FF", width=2.8)))
 fig.add_trace(go.Scatter(x=t_fut, y=10**tft_f, name="ML Engine TFT (P50)",
-              line=dict(color="#FF9900", width=2.5)))
+              line=dict(color="#FF9F00", width=2.8)))
 fig.add_trace(go.Scatter(x=t_fut, y=10**phy_f, name="1D Radial Diffusion (Physics)",
-              line=dict(color="#00CC66", width=2, dash="dash")))
+              line=dict(color="#00E676", width=2.2, dash="dash")))
 fig.add_trace(go.Scatter(x=t_fut, y=p90_f, fill=None,
-              line=dict(color="rgba(255,153,0,0.15)"), showlegend=False))
+              line=dict(color="rgba(255,159,0,0.15)"), showlegend=False))
 fig.add_trace(go.Scatter(x=t_fut, y=p10_f, fill="tonexty",
-              line=dict(color="rgba(255,153,0,0.15)"), name="90% Quantile Band (P10–P90)"))
-fig.add_hline(y=1e4, line_dash="dot", line_color="#FF3333",
+              line=dict(color="rgba(255,159,0,0.15)"), name="90% Quantile Band (P10–P90)"))
+fig.add_hline(y=1e4, line_dash="dot", line_color="#FF2D55",
               annotation_text="HIGH RISK Threshold (10⁴ pfu)", annotation_position="top right")
+
 fig.update_layout(
-    yaxis=dict(type="log", title="Electron Flux (>2 MeV) [pfu]", range=[0,6], gridcolor="#222"),
-    xaxis=dict(title="Time (UTC)", gridcolor="#222"),
+    yaxis=dict(type="log", title="Electron Flux (>2 MeV) [pfu]", range=[0,6], gridcolor="#1A2234"),
+    xaxis=dict(title="Time (UTC)", gridcolor="#1A2234"),
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    height=450
+    height=460
 )
 st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
-# ─── Driver Attribution & Diagnostics ─────────────────────────────────────────
+# ─── Solar Wind Driver Importance ─────────────────────────────────────────────
 st.subheader("🔬 Solar Wind Driver Importance & Physics Diagnostics")
 d1, d2 = st.columns(2)
 
@@ -265,17 +325,17 @@ with d1:
 with d2:
     st.markdown("#### System Diagnostics & Data Provenance")
     st.info(f"""
-**Current Magnetospheric State:** {REGIME_LABELS[regime]}
-**ML vs Physics Agreement:** {mean_agree:.1f}%
-**Primary Satellite Footprint:** GSAT-19 (48°E Indian Sector)
-**Pre-training Source:** GOES-13/15/16/17/18 (11 years)
-**Ground Conjugate Station:** INTERMAGNET Hyderabad (HYB)
-**Feature Vector:** 19-dimensional (Vsw, Bz, Ec, Pdyn, ULF, ...)
+**Current Magnetospheric State:** {REGIME_LABELS[regime]}  
+**ML vs Physics Agreement:** {mean_agree:.1f}%  
+**Primary Satellite Footprint:** GSAT-19 (48°E Indian Sector)  
+**Pre-training Source:** GOES-13/15/16/17/18 (11 years)  
+**Ground Conjugate Station:** INTERMAGNET Hyderabad (HYB)  
+**Feature Vector:** 19-dimensional (Vsw, Bz, Ec, Pdyn, ULF, ...)  
     """)
 
 st.markdown("---")
 
-# ─── Validation Metrics ───────────────────────────────────────────────────────
+# ─── Validation Metrics Table ─────────────────────────────────────────────────
 st.subheader("📊 Benchmark Validation Metrics (Historical Storm Replays)")
 metrics_data = {
     "Storm Event":    ["Gannon (May 2024)", "Halloween (2003)", "St. Patrick (2015)", "March 2015", "Aug 2018"],
