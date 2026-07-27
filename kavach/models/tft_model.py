@@ -109,7 +109,7 @@ class PhysicsInformedPinballLoss(nn.Module):
 # Alias for backwards compatibility
 PinballLoss = PhysicsInformedPinballLoss
 
-def build_tft():
+def build_tft(num_features: int = 19, hidden_size: int = 128, lstm_layers: int = 2, num_quantiles: int = 5, dropout: float = 0.1):
     """Factory function for initializing TFT model."""
-    return KAVACH_TFT()
+    return KAVACH_TFT(num_features=num_features, hidden_size=hidden_size, lstm_layers=lstm_layers, num_quantiles=num_quantiles, dropout=dropout)
 
