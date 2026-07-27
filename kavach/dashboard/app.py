@@ -356,12 +356,16 @@ with tab_drivers:
             ("Kp — Geomagnetic Index",             f"{kp:.1f}",             min(0.95, kp/9)),
         ]
         for name, val, pct in drivers:
+            pct_val = float(np.clip(pct, 0.03, 1.0))
+            pct_int = int(pct_val * 100)
             st.markdown(f"""
 <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-  <span style="font-size:0.8rem;color:#8AB4D4;font-family:'Inter',sans-serif">{name}</span>
-  <span style="font-size:0.8rem;color:#4FC3F7;font-family:'Space Mono',monospace">{val}</span>
+  <span style="font-size:0.82rem;color:#C8D6E5;font-family:'Inter',sans-serif">{name}</span>
+  <span style="font-size:0.82rem;color:#00E5FF;font-family:'Space Mono',monospace;font-weight:700">{val} &nbsp;<span style="color:#6B8299">({pct_int}%)</span></span>
+</div>
+<div style="background:#101722;border:1px solid #1C2A3A;border-radius:4px;height:12px;width:100%;overflow:hidden;margin-bottom:14px">
+  <div style="background:linear-gradient(90deg, #0288D1 0%, #00E5FF 100%);width:{pct_int}%;height:100%;border-radius:3px"></div>
 </div>""", unsafe_allow_html=True)
-            st.progress(float(np.clip(pct, 0.02, 1.0)))
     with d2:
         st.info(f"""
 **Geomagnetic State:** {REGIME_LABELS[regime]}
