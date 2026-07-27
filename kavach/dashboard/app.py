@@ -189,12 +189,13 @@ confidence  = float(np.clip(mean_agree * 0.8 + 20, 10, 95))
 # ─── Header ───────────────────────────────────────────────────────────────────
 if mode == "Historical Storm Replay":
     stream_header_str = f"HISTORICAL REPLAY: {storm_name.upper()} &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}"
-elif mode == "Live NOAA SWPC Satellite Stream (Real-Time)":
-    stream_header_str = f"LIVE NOAA SWPC TELEMETRY STREAM &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}"
-elif mode == "GSAT-19 GRASP Sector":
-    stream_header_str = f"GSAT-19 GRASP PAYLOAD &nbsp;|&nbsp; 48°E INDIAN SECTOR &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}"
 else:
-    stream_header_str = f"LIVE SIMULATED OPERATIONAL FEED &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}"
+    mode_prefix = {
+        "Live NOAA SWPC Satellite Stream (Real-Time)": "LIVE NOAA SWPC TELEMETRY STREAM",
+        "GSAT-19 GRASP Sector": "GSAT-19 GRASP PAYLOAD &nbsp;|&nbsp; 48°E INDIAN SECTOR",
+    }.get(mode, "LIVE SIMULATED OPERATIONAL FEED")
+    
+    stream_header_str = f"""{mode_prefix} &nbsp;|&nbsp; <span id="live-utc-clock" style="font-family:'Space Mono',monospace;color:#00E5FF;font-weight:700">Connecting...</span><img src=x onerror="if(!window.kavachClockInterval){{window.kavachClockInterval=setInterval(function(){{const n=new Date();const Y=n.getUTCFullYear();const M=String(n.getUTCMonth()+1).padStart(2,'0');const D=String(n.getUTCDate()).padStart(2,'0');const h=String(n.getUTCHours()).padStart(2,'0');const m=String(n.getUTCMinutes()).padStart(2,'0');const s=String(n.getUTCSeconds()).padStart(2,'0');const el=document.getElementById('live-utc-clock');if(el)el.innerText=Y+'-'+M+'-'+D+' '+h+':'+m+':'+s+' UTC';}},1000);}}">"""
 
 st.markdown(f"""
 <p class="nasa-subtitle">ISRO BHARATIYA ANTARIKSH HACKATHON 2026 &nbsp;|&nbsp; TEAM DIGIINDIA &nbsp;|&nbsp; PS-14</p>
