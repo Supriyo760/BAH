@@ -22,7 +22,8 @@ st.markdown("""<link href="https://fonts.googleapis.com/css2?family=Space+Mono:w
 @st.cache_data
 def generate_data(days=7, seed=42):
     n = days * 288
-    dates = pd.date_range("2024-01-01", periods=n, freq="5min")
+    end_time = pd.Timestamp.now(tz='UTC').floor('5min')
+    dates = pd.date_range(end=end_time, periods=n, freq="5min")
     np.random.seed(seed)
     vsw  = 400 + 100*np.sin(np.linspace(0, 4*np.pi, n)) + np.random.normal(0,15,n)
     bz   = 2*np.cos(np.linspace(0, 6*np.pi, n)) + np.random.normal(0,2,n)
@@ -188,10 +189,19 @@ mean_agree  = float(np.mean([a30m, a6h, a12h]) * 100)
 confidence  = float(np.clip(mean_agree * 0.8 + 20, 10, 95))
 
 # ─── Header ───────────────────────────────────────────────────────────────────
+if mode == "Historical Storm Replay":
+    stream_header_str = f"HISTORICAL REPLAY: {storm_name.upper()} &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}"
+elif mode == "Live NOAA SWPC Satellite Stream (Real-Time)":
+    stream_header_str = f"LIVE NOAA SWPC TELEMETRY STREAM &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}"
+elif mode == "GSAT-19 GRASP Sector":
+    stream_header_str = f"GSAT-19 GRASP PAYLOAD &nbsp;|&nbsp; 48°E INDIAN SECTOR &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}"
+else:
+    stream_header_str = f"LIVE SIMULATED OPERATIONAL FEED &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}"
+
 st.markdown(f"""
 <p class="nasa-subtitle">ISRO BHARATIYA ANTARIKSH HACKATHON 2026 &nbsp;|&nbsp; TEAM DIGIINDIA &nbsp;|&nbsp; PS-14</p>
 <p class="nasa-title"><span>KAVACH</span> — GEO Radiation Monitor</p>
-<p class="nasa-subtitle">GSAT-19 PAYLOAD &nbsp;|&nbsp; 48°E INDIAN SECTOR &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}</p>
+<p class="nasa-subtitle">{stream_header_str}</p>
 """, unsafe_allow_html=True)
 st.markdown("<hr style='margin:12px 0 20px 0'>", unsafe_allow_html=True)
 
