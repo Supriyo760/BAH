@@ -148,6 +148,12 @@ else: # Live Operations Simulation
     df = generate_data(days=7, seed=101)
     st.sidebar.caption("Simulating 24/7 continuous operational stream")
 
+if mode != "Historical Storm Replay":
+    if st.sidebar.checkbox("LIVE AUTO-REFRESH (15s)", value=False, help="Automatically polls NOAA SWPC and updates telemetry & UTC clock every 15 seconds."):
+        import time
+        time.sleep(15)
+        st.rerun()
+
 st.sidebar.markdown("---")
 st.sidebar.markdown("""<p style="font-family:'Space Mono',monospace;font-size:0.62rem;
 letter-spacing:0.14em;color:#3D5A70;text-transform:uppercase;margin:0 0 8px 0">
@@ -195,7 +201,8 @@ else:
         "GSAT-19 GRASP Sector": "GSAT-19 GRASP PAYLOAD &nbsp;|&nbsp; 48°E INDIAN SECTOR",
     }.get(mode, "LIVE SIMULATED OPERATIONAL FEED")
     
-    stream_header_str = f"""{mode_prefix} &nbsp;|&nbsp; <span id="live-utc-clock" style="font-family:'Space Mono',monospace;color:#00E5FF;font-weight:700">Connecting...</span><img src=x onerror="if(!window.kavachClockInterval){{window.kavachClockInterval=setInterval(function(){{const n=new Date();const Y=n.getUTCFullYear();const M=String(n.getUTCMonth()+1).padStart(2,'0');const D=String(n.getUTCDate()).padStart(2,'0');const h=String(n.getUTCHours()).padStart(2,'0');const m=String(n.getUTCMinutes()).padStart(2,'0');const s=String(n.getUTCSeconds()).padStart(2,'0');const el=document.getElementById('live-utc-clock');if(el)el.innerText=Y+'-'+M+'-'+D+' '+h+':'+m+':'+s+' UTC';}},1000);}}">"""
+    current_utc_str = pd.Timestamp.now(tz='UTC').strftime('%Y-%m-%d %H:%M:%S UTC')
+    stream_header_str = f"{mode_prefix} &nbsp;|&nbsp; {current_utc_str}"
 
 st.markdown(f"""
 <p class="nasa-subtitle">ISRO BHARATIYA ANTARIKSH HACKATHON 2026 &nbsp;|&nbsp; TEAM DIGIINDIA &nbsp;|&nbsp; PS-14</p>
