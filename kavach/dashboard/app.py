@@ -193,23 +193,70 @@ mean_agree  = float(np.mean([a30m, a6h, a12h]) * 100)
 confidence  = float(np.clip(mean_agree * 0.8 + 20, 10, 95))
 
 # ─── Header ───────────────────────────────────────────────────────────────────
+st.markdown("""
+<p class="nasa-subtitle">ISRO BHARATIYA ANTARIKSH HACKATHON 2026 &nbsp;|&nbsp; TEAM DIGIINDIA &nbsp;|&nbsp; PS-14</p>
+<p class="nasa-title" style="margin-bottom:6px"><span>KAVACH</span> — GEO Radiation Monitor</p>
+""", unsafe_allow_html=True)
+
 if mode == "Historical Storm Replay":
-    stream_header_str = f"HISTORICAL REPLAY: {storm_name.upper()} &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}"
+    st.markdown(f"""<p class="nasa-subtitle" style="margin-top:0">HISTORICAL REPLAY: {storm_name.upper()} &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}</p>""", unsafe_allow_html=True)
 else:
     mode_prefix = {
         "Live NOAA SWPC Satellite Stream (Real-Time)": "LIVE NOAA SWPC TELEMETRY STREAM",
         "GSAT-19 GRASP Sector": "GSAT-19 GRASP PAYLOAD &nbsp;|&nbsp; 48°E INDIAN SECTOR",
     }.get(mode, "LIVE SIMULATED OPERATIONAL FEED")
     
-    current_utc_str = pd.Timestamp.now(tz='UTC').strftime('%Y-%m-%d %H:%M:%S UTC')
-    stream_header_str = f"{mode_prefix} &nbsp;|&nbsp; {current_utc_str}"
+    st.components.v1.html(f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+      body {{
+        margin: 0;
+        padding: 0;
+        background-color: transparent;
+        color: #6B8299;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.78rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+      }}
+      .clock {{
+        color: #00E5FF;
+        font-weight: 700;
+      }}
+    </style>
+    </head>
+    <body>
+      <div id="header-text">{mode_prefix} &nbsp;|&nbsp; <span class="clock">CONNECTING CLOCK...</span></div>
+      <script>
+        const prefix = "{mode_prefix}";
+        function updateClock() {{
+          const now = new Date();
+          const Y = now.getUTCFullYear();
+          const M = String(now.getUTCMonth() + 1).padStart(2, '0');
+          const D = String(now.getUTCDate()).padStart(2, '0');
+          const h = String(now.getUTCHours()).padStart(2, '0');
+          const m = String(now.getUTCMinutes()).padStart(2, '0');
+          const s = String(now.getUTCSeconds()).padStart(2, '0');
+          const timeStr = Y + '-' + M + '-' + D + ' ' + h + ':' + m + ':' + s + ' UTC';
+          const el = document.getElementById('header-text');
+          if (el) {{
+            el.innerHTML = prefix + ' &nbsp;|&nbsp; <span class="clock">' + timeStr + '</span>';
+          }}
+        }}
+        setInterval(updateClock, 1000);
+        updateClock();
+      </script>
+    </body>
+    </html>
+    """, height=28)
 
-st.markdown(f"""
-<p class="nasa-subtitle">ISRO BHARATIYA ANTARIKSH HACKATHON 2026 &nbsp;|&nbsp; TEAM DIGIINDIA &nbsp;|&nbsp; PS-14</p>
-<p class="nasa-title"><span>KAVACH</span> — GEO Radiation Monitor</p>
-<p class="nasa-subtitle">{stream_header_str}</p>
-""", unsafe_allow_html=True)
-st.markdown("<hr style='margin:12px 0 20px 0'>", unsafe_allow_html=True)
+st.markdown("<hr style='margin:8px 0 20px 0'>", unsafe_allow_html=True)
 
 # ─── KPI Cards ────────────────────────────────────────────────────────────────
 c1, c2, c3, c4 = st.columns(4)
