@@ -11,6 +11,7 @@ from datetime import datetime
 NOAA_PLASMA_URL = "https://services.swpc.noaa.gov/json/dscovr/dscovr_plasma_5m.json"
 NOAA_MAG_URL    = "https://services.swpc.noaa.gov/json/dscovr/dscovr_mag_5m.json"
 NOAA_GOES_URL   = "https://services.swpc.noaa.gov/json/goes/primary/integral-electrons-1-day.json"
+NOAA_KP_URL     = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
 
 def fetch_live_noaa_telemetry(timeout_sec: int = 5):
     """
@@ -21,6 +22,16 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
     try:
         r_plasma = requests.get(NOAA_PLASMA_URL, timeout=timeout_sec).json()
         r_mag    = requests.get(NOAA_MAG_URL, timeout=timeout_sec).json()
+        
+        # Try fetching official planetary Kp index feed
+        live_kp_val = None
+        try:
+            r_kp = requests.get(NOAA_KP_URL, timeout=timeout_sec).json()
+            if isinstance(r_kp, list) and len(r_kp) > 1:
+                # Latest row in Kp JSON: [time_tag, kp, kp_fraction, a_running, station_count]
+                live_kp_val = float(r_kp[-1][1])
+        except Exception:
+            live_kp_val = None
         
         df_plasma = pd.DataFrame(r_plasma)
         df_mag    = pd.DataFrame(r_mag)
@@ -42,7 +53,11 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         ec    = np.clip((vsw**(4/3))*((bt*np.abs(np.sin(theta/2)))**(8/3)), 0, None)
         pdyn  = np.clip(0.5*1.67e-27*(np_d*1e6)*((vsw*1e3)**2)*1e9, 0.1, 50.0)
         
-        kp    = np.clip(2 + 0.01*(vsw-400) + 0.3*np.abs(bz), 0, 9)
+        if live_kp_val is not None:
+            kp = np.full(n, live_kp_val)
+        else:
+            kp = np.clip(2 + 0.01*(vsw-400) + 0.3*np.abs(bz), 0, 9)
+            
         dst   = -10 - 15*(kp/3.0)**1.5
         ae    = 100 + 120*(kp/2.0)
         ulf   = -3.5 + 0.4*(kp/3.0)

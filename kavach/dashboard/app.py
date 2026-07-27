@@ -103,6 +103,31 @@ STORM_META = {
     "August 2018 Minor Storm":       {"min_dst":-174,"max_kp":6,"desc":"Moderate G2 storm. Used for GSAT-19 baseline validation."},
 }
 
+@st.cache_resource
+def load_kavach_model():
+    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'finetuned_gsat19_grasp.pth'))
+    scaler_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler.pkl'))
+    model = None
+    scaler = None
+    if os.path.exists(weights_path):
+        try:
+            import torch
+            from kavach.models.tft_model import build_tft
+            model = build_tft(num_features=19, num_quantiles=5)
+            model.load_state_dict(torch.load(weights_path, map_location="cpu"))
+            model.eval()
+        except Exception:
+            model = None
+    if os.path.exists(scaler_path):
+        try:
+            import joblib
+            scaler = joblib.load(scaler_path)
+        except Exception:
+            scaler = None
+    return model, scaler
+
+tft_model_instance, tft_scaler_instance = load_kavach_model()
+
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 st.sidebar.markdown("""
 <p style="font-family:'Space Mono',monospace;font-size:0.62rem;letter-spacing:0.16em;
