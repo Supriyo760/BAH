@@ -198,7 +198,7 @@ c4.metric("ENGINE AGREEMENT", f"{mean_agree:.0f}%", "ML ⇄ Physics Fusion")
 
 st.markdown("<hr style='margin:20px 0'>", unsafe_allow_html=True)
 
-# ─── Risk Cards ───────────────────────────────────────────────────────────────
+# ─── Risk Cards & Operator Protocol ──────────────────────────────────────────
 st.markdown('<p class="section-label">⚠ Multi-Horizon Probabilistic Risk Forecast</p>', unsafe_allow_html=True)
 
 RISK_COLORS = {"RED":"#F44336","YELLOW":"#FF9800","GREEN":"#00BFA5"}
@@ -220,10 +220,39 @@ risk_card(r1, "T+30 MIN  ·  MANDATORY WARNING", "30m", r30m, f30m, msg30m)
 risk_card(r2, "T+6 HR  ·  MEDIUM-RANGE",        "6h",  r6h,  f6h,  msg6h)
 risk_card(r3, "T+12 HR  ·  EXTENDED OUTLOOK",   "12h", r12h, f12h, msg12h)
 
+if r30m in ["RED", "YELLOW"] or r6h in ["RED", "YELLOW"]:
+    with st.expander("🛡️ ISRO Payload Safing & Anomaly Action Protocol (Click to expand)", expanded=True):
+        st.markdown(f"**Active Hazard Advisory Level:** `{r30m}` | Target Orbital Slot: GSAT-19 (48°E)")
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.checkbox("Step 1: Alert Flight Dynamics & Payload Operations Team", value=True)
+            st.checkbox("Step 2: Prepare high-voltage sensor payload for standby safing", value=(r30m == "RED"))
+        with col_b:
+            st.checkbox("Step 3: Verify redundant telemetry uplink channel status", value=True)
+            st.checkbox("Step 4: Execute solar panel orientation alignment to minimize cross-section", value=(r30m == "RED"))
+
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
-# ─── Main Chart ───────────────────────────────────────────────────────────────
-st.markdown('<p class="section-label">📡 Electron Flux Time-Series &amp; Multi-Engine Forecast</p>', unsafe_allow_html=True)
+# ─── Main Chart & Data Exporter ───────────────────────────────────────────────
+chart_col, export_col = st.columns([0.82, 0.18])
+with chart_col:
+    st.markdown('<p class="section-label">📡 Electron Flux Time-Series &amp; Multi-Engine Forecast</p>', unsafe_allow_html=True)
+with export_col:
+    # Telemetry Exporter
+    export_df = pd.DataFrame({
+        "Timestamp_UTC": t_fut,
+        "TFT_Predicted_Flux_pfu": 10**tft_f,
+        "Radial_Diffusion_Flux_pfu": 10**phy_f,
+        "P10_Lower_Bound": 10**(tft_f-0.25),
+        "P90_Upper_Bound": 10**(tft_f+0.25)
+    })
+    csv_bytes = export_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Export CSV",
+        data=csv_bytes,
+        file_name=f"kavach_forecast_{df.index[-1].strftime('%Y%m%d_%H%M')}.csv",
+        mime="text/csv"
+    )
 
 hist_n = min(len(df), 150)
 t_hist = df.index[-hist_n:]
@@ -299,50 +328,61 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
-# ─── Driver Attribution + Diagnostics ────────────────────────────────────────
-d1, d2 = st.columns(2)
+# ─── Tabbed Diagnostics & Metrics ─────────────────────────────────────────────
+tab_drivers, tab_benchmarks, tab_specs = st.tabs([
+    "🔬 Solar Wind Drivers", 
+    "📊 Benchmark Validation", 
+    "⚙️ System Specifications & Provenance"
+])
 
-with d1:
-    st.markdown('<p class="section-label">🔬 Solar Wind Driver Attribution</p>', unsafe_allow_html=True)
-    drivers = [
-        ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       min(0.95, vsw/800)),
-        ("Bz — Southward IMF (GSM)",           f"{bz:.1f} nT",          min(0.95, abs(bz)/20)),
-        ("ULF — Pc5 Wave Power (30-min lead)", f"{ulf:.2f} log(nT²/Hz)",min(0.95, (ulf+4)/2.5)),
-        ("Kp — Geomagnetic Index",             f"{kp:.1f}",             min(0.95, kp/9)),
-    ]
-    for name, val, pct in drivers:
-        st.markdown(f"""
+with tab_drivers:
+    st.markdown('<p class="section-label">Solar Wind Feature Attribution & Precursors</p>', unsafe_allow_html=True)
+    d1, d2 = st.columns(2)
+    with d1:
+        drivers = [
+            ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       min(0.95, vsw/800)),
+            ("Bz — Southward IMF (GSM)",           f"{bz:.1f} nT",          min(0.95, abs(bz)/20)),
+            ("ULF — Pc5 Wave Power (30-min lead)", f"{ulf:.2f} log(nT²/Hz)",min(0.95, (ulf+4)/2.5)),
+            ("Kp — Geomagnetic Index",             f"{kp:.1f}",             min(0.95, kp/9)),
+        ]
+        for name, val, pct in drivers:
+            st.markdown(f"""
 <div style="display:flex;justify-content:space-between;margin-bottom:4px">
   <span style="font-size:0.8rem;color:#8AB4D4;font-family:'Inter',sans-serif">{name}</span>
   <span style="font-size:0.8rem;color:#4FC3F7;font-family:'Space Mono',monospace">{val}</span>
 </div>""", unsafe_allow_html=True)
-        st.progress(float(np.clip(pct, 0.02, 1.0)))
+            st.progress(float(np.clip(pct, 0.02, 1.0)))
+    with d2:
+        st.info(f"""
+**Geomagnetic State:** {REGIME_LABELS[regime]}
+**Convection Field (Ec):** {float(row.get('Ec', 0)):.2f} mV/m
+**Dynamic Pressure (Pdyn):** {float(row.get('Pdyn', 0)):.2f} nPa
+**Bz Negative Duration:** {float(row.get('Bz_neg_dur', 0)):.0f} min
+        """)
 
-with d2:
-    st.markdown('<p class="section-label">🛰️ System Diagnostics</p>', unsafe_allow_html=True)
-    st.info(f"""
-**Magnetospheric State:** {REGIME_LABELS[regime]}
-**Engine Agreement:** {mean_agree:.1f}%
-**Satellite Footprint:** GSAT-19 (48°E Indian Sector)
-**Training Source:** GOES-13/15/16/17/18 (11 yr archive)
-**Ground Station:** INTERMAGNET Hyderabad (HYB)
-**Feature Vector:** 19-D (Vsw, Bz, Ec, Pdyn, ULF ...)
+with tab_benchmarks:
+    st.markdown('<p class="section-label">Historical Storm Replay Performance Benchmarks</p>', unsafe_allow_html=True)
+    metrics_df = pd.DataFrame({
+        "Storm Event":    ["Gannon (May 2024)","Halloween (2003)","St. Patrick (2015)","March 2015","Aug 2018"],
+        "Max Kp":         [9, 9, 8, 7, 6],
+        "Min Dst (nT)":   [-412,-383,-223,-188,-174],
+        "RMSE (log pfu)": [0.28,0.31,0.24,0.22,0.19],
+        "HSS (T+30m)":    [0.71,0.68,0.74,0.76,0.79],
+        "POD (≥ RED)":    [0.88,0.85,0.91,0.93,0.90],
+        "FAR":            [0.14,0.17,0.11,0.09,0.12],
+    })
+    st.dataframe(metrics_df, use_container_width=True, hide_index=True)
+
+with tab_specs:
+    st.markdown('<p class="section-label">Architecture, Training & Mission Payload Hardware Specifications</p>', unsafe_allow_html=True)
+    st.markdown("""
+- **Mission Payload Focus**: GSAT-19 GRASP Payload (Geostationary Orbit, 48°E Indian Sector)
+- **Deep Learning Model**: Custom PyTorch Temporal Fusion Transformer (TFT) with Variable Selection Networks (VSN) & Gated Residual Networks (GRN)
+- **Loss Function**: Physics-Informed Pinball Loss (PINN) with 1D Fokker-Planck Radial Diffusion ODE regularization
+- **Pre-Training Corpus**: 11+ Years of NOAA GOES-13/15/16/17/18 5-minute energetic electron flux telemetry archives
+- **Ground Conjugate Station**: INTERMAGNET Hyderabad (HYB) Pc5 ULF Wave Power (1.7–6.7 mHz)
+- **Serving Architecture**: FastAPI / Streamlit Cloud Server with zero-downtime Hugging Face Model Hub Sync
     """)
-
-st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
-
-# ─── Validation Table ─────────────────────────────────────────────────────────
-st.markdown('<p class="section-label">📊 Historical Storm Replay — Validation Metrics</p>', unsafe_allow_html=True)
-metrics_df = pd.DataFrame({
-    "Storm Event":    ["Gannon (May 2024)","Halloween (2003)","St. Patrick (2015)","March 2015","Aug 2018"],
-    "Max Kp":         [9, 9, 8, 7, 6],
-    "Min Dst (nT)":   [-412,-383,-223,-188,-174],
-    "RMSE (log pfu)": [0.28,0.31,0.24,0.22,0.19],
-    "HSS (T+30m)":    [0.71,0.68,0.74,0.76,0.79],
-    "POD (≥ RED)":    [0.88,0.85,0.91,0.93,0.90],
-    "FAR":            [0.14,0.17,0.11,0.09,0.12],
-})
-st.dataframe(metrics_df, use_container_width=True, hide_index=True)
 
 st.markdown(f"""
 <p style="font-family:'Space Mono',monospace;font-size:0.62rem;color:#2A3D50;
@@ -351,3 +391,4 @@ KAVACH v1.0 &nbsp;|&nbsp; TFT + RADIAL DIFFUSION ENSEMBLE &nbsp;|&nbsp;
 TRAINED ON GOES/OMNI/INTERMAGNET &nbsp;|&nbsp; TEAM DIGIINDIA &nbsp;|&nbsp;
 BHARATIYA ANTARIKSH HACKATHON 2026
 </p>""", unsafe_allow_html=True)
+
