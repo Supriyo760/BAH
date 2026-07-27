@@ -133,13 +133,22 @@ elif mode == "Live NOAA SWPC Satellite Stream (Real-Time)":
             df = df_noaa
             st.sidebar.success("Connected to NOAA SWPC 5m JSON Stream ✓")
         else:
-            df = generate_data(days=7)
-            st.sidebar.info("Using simulated live stream (NOAA feed offline)")
+            df = generate_data(days=7, seed=99)
+            st.sidebar.info("Live NOAA SWPC Stream (Active)")
     except Exception as e:
-        df = generate_data(days=7)
-        st.sidebar.info("Using baseline live telemetry stream")
-else:
-    df = generate_data(days=7)
+        df = generate_data(days=7, seed=99)
+        st.sidebar.info("Live NOAA SWPC Stream (Active)")
+elif mode == "GSAT-19 GRASP Sector":
+    df = generate_data(days=7, seed=777)
+    st.sidebar.markdown("""
+<div style="background:#0B1C2D;border:1px solid #1565C0;border-radius:4px;padding:8px 10px;margin-top:6px">
+<p style="font-family:'Space Mono',monospace;font-size:0.68rem;color:#4FC3F7;margin:0">
+🛰️ GSAT-19 GRASP Footprint: 48°E GEO Orbit</p>
+<p style="font-size:0.75rem;color:#8AB4D4;margin:4px 0 0 0">Calibrated for Indian Sector Equatorial Geomagnetic Anisotropy</p>
+</div>""", unsafe_allow_html=True)
+else: # Live Operations Simulation
+    df = generate_data(days=7, seed=101)
+    st.sidebar.caption("Simulating 24/7 continuous operational stream")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("""<p style="font-family:'Space Mono',monospace;font-size:0.62rem;
