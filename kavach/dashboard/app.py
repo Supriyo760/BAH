@@ -1,7 +1,7 @@
 """
 KAVACH — GEO Radiation Monitor | Streamlit Operator Dashboard
 Bharatiya Antariksh Hackathon 2026 | Team DigiIndia | PS-14 ISRO
-NASA Eyes-inspired deep-space telemetry aesthetic.
+NASA Eyes-inspired deep-space telemetry aesthetic (Text-only, No Emojis).
 """
 import os
 import numpy as np
@@ -11,7 +11,6 @@ import streamlit as st
 
 st.set_page_config(
     page_title="KAVACH — GEO Radiation Monitor",
-    page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -100,7 +99,7 @@ st.sidebar.markdown("""
 <p style="font-family:'Space Mono',monospace;font-size:0.62rem;letter-spacing:0.16em;
 color:#3D5A70;text-transform:uppercase;margin:0 0 4px 0">KAVACH / PS-14 ISRO</p>
 <p style="font-family:'Inter',sans-serif;font-size:1.1rem;color:#4FC3F7;
-font-weight:600;margin:0 0 16px 0">🛰️ Mission Control</p>
+font-weight:600;margin:0 0 16px 0">MISSION CONTROL</p>
 """, unsafe_allow_html=True)
 
 mode = st.sidebar.radio("DATA STREAM", [
@@ -131,7 +130,7 @@ elif mode == "Live NOAA SWPC Satellite Stream (Real-Time)":
         df_noaa, status_msg = fetch_live_noaa_telemetry()
         if df_noaa is not None and len(df_noaa) > 0:
             df = df_noaa
-            st.sidebar.success("Connected to NOAA SWPC 5m JSON Stream ✓")
+            st.sidebar.success("Connected to NOAA SWPC 5m JSON Stream")
         else:
             df = generate_data(days=7, seed=99)
             st.sidebar.info("Live NOAA SWPC Stream (Active)")
@@ -143,7 +142,7 @@ elif mode == "GSAT-19 GRASP Sector":
     st.sidebar.markdown("""
 <div style="background:#0B1C2D;border:1px solid #1565C0;border-radius:4px;padding:8px 10px;margin-top:6px">
 <p style="font-family:'Space Mono',monospace;font-size:0.68rem;color:#4FC3F7;margin:0">
-🛰️ GSAT-19 GRASP Footprint: 48°E GEO Orbit</p>
+GSAT-19 GRASP Footprint: 48°E GEO Orbit</p>
 <p style="font-size:0.75rem;color:#8AB4D4;margin:4px 0 0 0">Calibrated for Indian Sector Equatorial Geomagnetic Anisotropy</p>
 </div>""", unsafe_allow_html=True)
 else: # Live Operations Simulation
@@ -153,9 +152,9 @@ else: # Live Operations Simulation
 st.sidebar.markdown("---")
 st.sidebar.markdown("""<p style="font-family:'Space Mono',monospace;font-size:0.62rem;
 letter-spacing:0.14em;color:#3D5A70;text-transform:uppercase;margin:0 0 8px 0">
-☁️ MLOps Cloud Registry</p>""", unsafe_allow_html=True)
+MLOps Cloud Registry</p>""", unsafe_allow_html=True)
 hf_repo = st.sidebar.text_input("HF MODEL REPO", "Supriyo760/kavach-weights")
-if st.sidebar.button("↓ SYNC GPU WEIGHTS"):
+if st.sidebar.button("SYNC GPU WEIGHTS"):
     with st.sidebar.status("Connecting to registry..."):
         try:
             from huggingface_hub import hf_hub_download
@@ -163,7 +162,7 @@ if st.sidebar.button("↓ SYNC GPU WEIGHTS"):
             os.makedirs(target, exist_ok=True)
             hf_hub_download(repo_id=hf_repo, filename="kavach_tft_v1.pt", local_dir=target)
             hf_hub_download(repo_id=hf_repo, filename="scaler.pkl", local_dir=target)
-            st.sidebar.success("Weights synced from cloud ✓")
+            st.sidebar.success("Weights synced from cloud")
         except Exception as e:
             st.sidebar.warning(f"Repo not found or private: {e}")
 
@@ -203,22 +202,22 @@ c1.metric("LIVE FLUX  (>2 MeV)", f"{flux:.2e} pfu",
 c2.metric("REGIME STATE", REGIME_LABELS[regime], f"Kp = {kp:.1f} | Dst = {dst:.0f} nT")
 c3.metric("MODEL CONFIDENCE", f"{confidence:.0f}%",
           "Widened — Storm" if kp > 5 else "Stable")
-c4.metric("ENGINE AGREEMENT", f"{mean_agree:.0f}%", "ML ⇄ Physics Fusion")
+c4.metric("ENGINE AGREEMENT", f"{mean_agree:.0f}%", "ML / Physics Fusion")
 
 st.markdown("<hr style='margin:20px 0'>", unsafe_allow_html=True)
 
 # ─── Risk Cards & Operator Protocol ──────────────────────────────────────────
-st.markdown('<p class="section-label">⚠ Multi-Horizon Probabilistic Risk Forecast</p>', unsafe_allow_html=True)
+st.markdown('<p class="section-label">Multi-Horizon Probabilistic Risk Forecast</p>', unsafe_allow_html=True)
 
 RISK_COLORS = {"RED":"#F44336","YELLOW":"#FF9800","GREEN":"#00BFA5"}
-RISK_ICONS  = {"RED":"▲","YELLOW":"◆","GREEN":"●"}
+RISK_PREFIX = {"RED":"CRITICAL","YELLOW":"MODERATE","GREEN":"NOMINAL"}
 
 def risk_card(col, horizon, tag, risk, fval, msg):
     cls = {"RED":"risk-red","YELLOW":"risk-yellow","GREEN":"risk-green"}[risk]
     col.markdown(f"""
 <div class="{cls}">
   <p class="risk-label" style="color:{RISK_COLORS[risk]}">
-    {RISK_ICONS[risk]} &nbsp; {horizon}</p>
+    [{RISK_PREFIX[risk]}] &nbsp; {horizon}</p>
   <p class="risk-value" style="color:{RISK_COLORS[risk]}">{10**fval:.2e} <span style="font-size:0.9rem">pfu</span></p>
   <p class="risk-band">90% Band: [{10**(fval-0.25):.1e} – {10**(fval+0.25):.1e}] pfu</p>
   <p class="risk-msg">{risk} RISK — {msg}</p>
@@ -230,7 +229,7 @@ risk_card(r2, "T+6 HR  ·  MEDIUM-RANGE",        "6h",  r6h,  f6h,  msg6h)
 risk_card(r3, "T+12 HR  ·  EXTENDED OUTLOOK",   "12h", r12h, f12h, msg12h)
 
 if r30m in ["RED", "YELLOW"] or r6h in ["RED", "YELLOW"]:
-    with st.expander("🛡️ ISRO Payload Safing & Anomaly Action Protocol (Click to expand)", expanded=True):
+    with st.expander("ISRO Payload Safing & Anomaly Action Protocol (Click to expand)", expanded=True):
         st.markdown(f"**Active Hazard Advisory Level:** `{r30m}` | Target Orbital Slot: GSAT-19 (48°E)")
         col_a, col_b = st.columns(2)
         with col_a:
@@ -254,7 +253,7 @@ phy_f  = np.linspace(log_flux, phys["T+12h"], 144)
 # ─── Main Chart & Data Exporter ───────────────────────────────────────────────
 chart_col, export_col = st.columns([0.82, 0.18])
 with chart_col:
-    st.markdown('<p class="section-label">📡 Electron Flux Time-Series &amp; Multi-Engine Forecast</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-label">Electron Flux Time-Series &amp; Multi-Engine Forecast</p>', unsafe_allow_html=True)
 with export_col:
     # Telemetry Exporter
     export_df = pd.DataFrame({
@@ -266,7 +265,7 @@ with export_col:
     })
     csv_bytes = export_df.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="📥 Export CSV",
+        label="EXPORT CSV",
         data=csv_bytes,
         file_name=f"kavach_forecast_{df.index[-1].strftime('%Y%m%d_%H%M')}.csv",
         mime="text/csv"
@@ -340,9 +339,9 @@ st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
 # ─── Tabbed Diagnostics & Metrics ─────────────────────────────────────────────
 tab_drivers, tab_benchmarks, tab_specs = st.tabs([
-    "🔬 Solar Wind Drivers", 
-    "📊 Benchmark Validation", 
-    "⚙️ System Specifications & Provenance"
+    "Solar Wind Drivers", 
+    "Benchmark Validation", 
+    "System Specifications & Provenance"
 ])
 
 with tab_drivers:
@@ -405,4 +404,3 @@ KAVACH v1.0 &nbsp;|&nbsp; TFT + RADIAL DIFFUSION ENSEMBLE &nbsp;|&nbsp;
 TRAINED ON GOES/OMNI/INTERMAGNET &nbsp;|&nbsp; TEAM DIGIINDIA &nbsp;|&nbsp;
 BHARATIYA ANTARIKSH HACKATHON 2026
 </p>""", unsafe_allow_html=True)
-
