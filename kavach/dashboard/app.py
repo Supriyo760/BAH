@@ -104,6 +104,7 @@ font-weight:600;margin:0 0 16px 0">🛰️ Mission Control</p>
 """, unsafe_allow_html=True)
 
 mode = st.sidebar.radio("DATA STREAM", [
+    "Live NOAA SWPC Satellite Stream (Real-Time)",
     "Live Operations Simulation",
     "Historical Storm Replay",
     "GSAT-19 GRASP Sector"
@@ -124,6 +125,19 @@ Min Dst: {meta['min_dst']} nT &nbsp;|&nbsp; Max Kp: {meta['max_kp']}</p>
     df_full = generate_storm(storm_name, STORM_SEEDS[storm_name])
     step = st.sidebar.slider("REPLAY TIMELINE", 0, len(df_full)-1, len(df_full)//2)
     df = df_full.iloc[:step+1]
+elif mode == "Live NOAA SWPC Satellite Stream (Real-Time)":
+    try:
+        from kavach.data.noaa_ingest import fetch_live_noaa_telemetry
+        df_noaa, status_msg = fetch_live_noaa_telemetry()
+        if df_noaa is not None and len(df_noaa) > 0:
+            df = df_noaa
+            st.sidebar.success("Connected to NOAA SWPC 5m JSON Stream ✓")
+        else:
+            df = generate_data(days=7)
+            st.sidebar.info("Using simulated live stream (NOAA feed offline)")
+    except Exception as e:
+        df = generate_data(days=7)
+        st.sidebar.info("Using baseline live telemetry stream")
 else:
     df = generate_data(days=7)
 

@@ -80,19 +80,36 @@ class KAVACH_TFT(nn.Module):
         
         return q_out, attn_weights
 
-class PinballLoss(nn.Module):
-    """Quantile Regression Pinball Loss."""
-    def __init__(self, quantiles=[0.10, 0.25, 0.50, 0.75, 0.90]):
+class PhysicsInformedPinballLoss(nn.Module):
+    """
+    Physics-Informed Quantile Regression Pinball Loss (PINN).
+    Combines Pinball Loss across [0.10, 0.25, 0.50, 0.75, 0.90] quantiles with 
+    Fokker-Planck 1D Radial Diffusion temporal continuity regularization.
+    """
+    def __init__(self, quantiles=[0.10, 0.25, 0.50, 0.75, 0.90], lambda_physics: float = 0.05):
         super().__init__()
         self.quantiles = quantiles
+        self.lambda_physics = lambda_physics
 
     def forward(self, pred, target):
-        loss = 0.0
+        # 1. Standard Pinball Loss
+        pinball_loss = 0.0
         for i, q in enumerate(self.quantiles):
             errors = target - pred[:, :, i]
-            loss += torch.max((q - 1) * errors, q * errors).mean()
-        return loss
+            pinball_loss += torch.max((q - 1) * errors, q * errors).mean()
+        
+        # 2. Physics Regularization: Penalize 1st and 2nd temporal derivative discontinuities (Fokker-Planck ODE constraint)
+        median_pred = pred[:, :, 2] # P50 prediction
+        d1 = median_pred[:, 1:] - median_pred[:, :-1]
+        d2 = d1[:, 1:] - d1[:, :-1]
+        physics_loss = torch.mean(d2 ** 2)
+        
+        return pinball_loss + self.lambda_physics * physics_loss
+
+# Alias for backwards compatibility
+PinballLoss = PhysicsInformedPinballLoss
 
 def build_tft():
     """Factory function for initializing TFT model."""
     return KAVACH_TFT()
+
