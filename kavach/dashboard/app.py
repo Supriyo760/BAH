@@ -19,9 +19,12 @@ st.set_page_config(
 st.markdown("""<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"><style>html, body, [data-testid="stAppViewContainer"] { background-color: #070809 !important; color: #C8D6E5 !important; font-family: 'Inter', sans-serif; } [data-testid="stHeader"] { background: transparent !important; } [data-testid="stSidebar"] { background: #0B0D10 !important; border-right: 1px solid #1A2030 !important; } [data-testid="stSidebar"] * { color: #8A9BB0 !important; } [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #4FC3F7 !important; } [data-testid="stMetric"] { background: #0D1117; border: 1px solid #1C2A3A; border-top: 2px solid #1565C0; border-radius: 4px; padding: 16px 20px !important; } [data-testid="stMetricLabel"] { color: #4FC3F7 !important; font-size: 0.72rem !important; font-family: 'Space Mono', monospace !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; } [data-testid="stMetricValue"] { color: #E8F4FD !important; font-family: 'Space Mono', monospace !important; font-size: 1.4rem !important; } [data-testid="stMetricDelta"] { font-size: 0.75rem !important; } h2, h3 { color: #4FC3F7 !important; font-family: 'Inter', sans-serif !important; font-weight: 500 !important; letter-spacing: 0.04em; border-bottom: 1px solid #1A2A3A; padding-bottom: 6px; } .risk-red { background: rgba(183, 28, 28, 0.12); border: 1px solid #B71C1C; border-left: 3px solid #F44336; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-yellow { background: rgba(230, 119, 0, 0.10); border: 1px solid #E65100; border-left: 3px solid #FF9800; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-green { background: rgba(0, 77, 64, 0.15); border: 1px solid #004D40; border-left: 3px solid #00BFA5; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-label { font-family: 'Space Mono', monospace; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 6px 0; } .risk-value { font-family: 'Space Mono', monospace; font-size: 1.6rem; font-weight: 700; margin: 4px 0; } .risk-band { font-size: 0.78rem; color: #6B8299; margin: 4px 0 0 0; } .risk-msg { font-size: 0.80rem; color: #9AB0C4; margin: 8px 0 0 0; font-style: italic; } hr { border-color: #1A2A3A !important; } [data-testid="stInfo"] { background: #0D1622 !important; border: 1px solid #1C3050 !important; color: #8AB4D4 !important; border-radius: 4px !important; } [data-testid="stDataFrame"] { border: 1px solid #1A2A3A !important; border-radius: 4px !important; } [data-testid="stProgress"] > div > div { background: #1565C0 !important; } [data-testid="stButton"] > button { background: #0D2137 !important; border: 1px solid #1565C0 !important; color: #4FC3F7 !important; font-family: 'Space Mono', monospace !important; font-size: 0.8rem !important; border-radius: 3px !important; } [data-testid="stButton"] > button:hover { background: #1565C0 !important; color: #FFFFFF !important; } .nasa-title { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 1.9rem; color: #E8F4FD; letter-spacing: 0.06em; margin: 0; } .nasa-title span { color: #4FC3F7; font-weight: 600; } .nasa-subtitle { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: #3D5A70; letter-spacing: 0.1em; text-transform: uppercase; margin: 4px 0 0 0; } .section-label { font-family: 'Space Mono', monospace; font-size: 0.68rem; color: #3D7AB5; letter-spacing: 0.16em; text-transform: uppercase; margin: 0 0 14px 0; }</style>""", unsafe_allow_html=True)
 
 # ─── Data Generator ───────────────────────────────────────────────────────────
-def generate_data(days=7, seed=42):
+def generate_data(days=7, seed=42, end_time=None):
     n = days * 288
-    end_time = pd.Timestamp.now(tz='UTC').floor('5min')
+    if end_time is None:
+        end_time = pd.Timestamp.now(tz='UTC').floor('5min')
+    else:
+        end_time = pd.to_datetime(end_time, utc=True)
     dates = pd.date_range(end=end_time, periods=n, freq="5min")
     np.random.seed(seed)
     vsw  = 400 + 100*np.sin(np.linspace(0, 4*np.pi, n)) + np.random.normal(0,15,n)
@@ -58,7 +61,14 @@ def generate_storm(name, seed):
     dur = {"Gannon Storm (May 2024)":5,"Halloween Storm (2003)":4,
            "St. Patrick's Day Storm (2015)":3,"March 2015 Storm":3,
            "August 2018 Minor Storm":2}.get(name, 3)
-    return generate_data(days=dur, seed=seed)
+    end_times = {
+        "Gannon Storm (May 2024)": "2024-05-11 23:55:00",
+        "Halloween Storm (2003)": "2003-10-31 23:55:00",
+        "St. Patrick's Day Storm (2015)": "2015-03-19 23:55:00",
+        "March 2015 Storm": "2015-03-17 23:55:00",
+        "August 2018 Minor Storm": "2018-08-26 23:55:00"
+    }
+    return generate_data(days=dur, seed=seed, end_time=end_times.get(name))
 
 # ─── Physics & Ensemble ───────────────────────────────────────────────────────
 def physics_forecast(log_flux, kp):
@@ -199,7 +209,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if mode == "Historical Storm Replay":
-    st.markdown(f"""<p class="nasa-subtitle" style="margin-top:0">HISTORICAL REPLAY: {storm_name.upper()} &nbsp;|&nbsp; {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}</p>""", unsafe_allow_html=True)
+    st.markdown(f"""<p class="nasa-subtitle" style="margin-top:0">HISTORICAL REPLAY: {storm_name.upper()} &nbsp;|&nbsp; <span style="color:#00E5FF;font-weight:700">REPLAY TIMELINE: {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}</span></p>""", unsafe_allow_html=True)
 else:
     mode_prefix = {
         "Live NOAA SWPC Satellite Stream (Real-Time)": "LIVE NOAA SWPC TELEMETRY STREAM",
