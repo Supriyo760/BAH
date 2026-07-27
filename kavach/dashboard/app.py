@@ -35,11 +35,19 @@ def load_model(repo_id: str = "DigiIndia/kavach-weights"):
         sync_from_huggingface(repo_id=repo_id, target_dir=weights_dir)
 
     scaler = None
-    if os.path.exists(pt_path):
-        model.load_state_dict(torch.load(pt_path, map_location='cpu'))
-    if os.path.exists(sc_path):
-        scaler = load_scaler(sc_path)
+    try:
+        if os.path.exists(pt_path):
+            model.load_state_dict(torch.load(pt_path, map_location='cpu'))
+        if os.path.exists(sc_path):
+            scaler = load_scaler(sc_path)
+    except Exception as e:
+        print(f"Notice: Model checkpoint load fallback ({e})")
     return model, scaler
+
+try:
+    model, scaler = load_model()
+except Exception as e:
+    model, scaler = build_tft(), None
 
 # ── Streamlit Page Configuration ──────────────────────────
 st.set_page_config(
