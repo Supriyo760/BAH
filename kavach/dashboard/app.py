@@ -117,9 +117,19 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.markdown("**☁️ MLOps Cloud Registry**")
 st.sidebar.caption("Kaggle GPU → Hugging Face → Dashboard")
-st.sidebar.text_input("Model Hub Repo", "DigiIndia/kavach-weights", disabled=True)
+hf_repo_name = st.sidebar.text_input("Hugging Face Model Repo", "Supriyo760/kavach-weights")
 if st.sidebar.button("🔄 Sync GPU Weights from Cloud"):
-    st.sidebar.info("Set up HuggingFace repo to enable cloud sync.")
+    with st.sidebar.status("Connecting to Hugging Face Cloud Hub..."):
+        try:
+            from huggingface_hub import hf_hub_download
+            target_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights'))
+            os.makedirs(target_dir, exist_ok=True)
+            hf_hub_download(repo_id=hf_repo_name, filename="kavach_tft_v1.pt", local_dir=target_dir)
+            hf_hub_download(repo_id=hf_repo_name, filename="scaler.pkl", local_dir=target_dir)
+            st.cache_resource.clear()
+            st.sidebar.success(f"Successfully synced GPU weights from {hf_repo_name}! ✅")
+        except Exception as e:
+            st.sidebar.warning(f"Could not fetch weights from '{hf_repo_name}'. Make sure the Hugging Face repo exists and is public! Notice: {e}")
 
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
