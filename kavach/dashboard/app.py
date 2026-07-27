@@ -104,15 +104,23 @@ st.sidebar.image("https://img.icons8.com/color/96/satellite.png", width=70)
 st.sidebar.title("Operational Mode")
 mode = st.sidebar.radio("Select Data Stream", ["Live Operations Simulation", "Historical Storm Replay Benchmarks", "ISRO GSAT-19 GRASP Sector"])
 
+@st.cache_data
+def get_cached_synthetic_data():
+    return generate_synthetic_dataset(days=7)
+
+@st.cache_data
+def get_cached_storm_data(storm_name):
+    return load_storm_replay(storm_name)
+
 if mode == "Historical Storm Replay Benchmarks":
     selected_storm = st.sidebar.selectbox("Select Benchmark Storm", list(STORM_EVENTS.keys()))
     storm_info = STORM_EVENTS[selected_storm]
     st.sidebar.info(f"**Event Info:**\n{storm_info['description']}\n\n**Min Dst:** {storm_info['min_dst']} nT\n**Max Kp:** {storm_info['max_kp']}")
-    df_stream = load_storm_replay(selected_storm)
+    df_stream = get_cached_storm_data(selected_storm)
     step_slider = st.sidebar.slider("Replay Time Index", 0, len(df_stream)-1, len(df_stream)//2)
     df_current = df_stream.iloc[:step_slider+1]
 else:
-    df_stream = generate_synthetic_dataset(days=7)
+    df_stream = get_cached_synthetic_data()
     df_current = df_stream.copy()
 
 # MLOps Cloud Registry Sync Widget
