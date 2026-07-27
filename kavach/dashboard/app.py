@@ -97,8 +97,7 @@ STORM_META    = {
 }
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
-st.sidebar.image("https://img.icons8.com/color/96/satellite.png", width=70)
-st.sidebar.title("Operational Mode")
+st.sidebar.title("🛰️ Operational Mode")
 mode = st.sidebar.radio("Select Data Stream", [
     "Live Operations Simulation",
     "Historical Storm Replay Benchmarks",
@@ -233,7 +232,7 @@ fig.update_layout(
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     height=450
 )
-st.plotly_chart(fig, width='stretch')
+st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
@@ -275,6 +274,6 @@ metrics_data = {
     "POD (≥RED)":     [0.88, 0.85, 0.91, 0.93, 0.90],
     "FAR":            [0.14, 0.17, 0.11, 0.09, 0.12],
 }
-st.dataframe(pd.DataFrame(metrics_data), width='stretch')
+st.dataframe(pd.DataFrame(metrics_data), use_container_width=True)
 
 st.caption("KAVACH v1.0 | TFT + Radial Diffusion Ensemble | Trained on GOES/OMNI/INTERMAGNET | Team DigiIndia")
