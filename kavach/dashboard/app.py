@@ -233,6 +233,15 @@ if r30m in ["RED", "YELLOW"] or r6h in ["RED", "YELLOW"]:
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
+# ─── Forecast Vectors Computation ─────────────────────────────────────────────
+hist_n = min(len(df), 150)
+t_hist = df.index[-hist_n:]
+f_hist = df["flux"].values[-hist_n:]
+last_t = t_hist[-1]
+t_fut  = [last_t + pd.Timedelta(minutes=5*i) for i in range(1, 145)]
+tft_f  = np.linspace(log_flux, f12h, 144) + 0.04*np.sin(np.linspace(0, 3*np.pi, 144))
+phy_f  = np.linspace(log_flux, phys["T+12h"], 144)
+
 # ─── Main Chart & Data Exporter ───────────────────────────────────────────────
 chart_col, export_col = st.columns([0.82, 0.18])
 with chart_col:
@@ -253,14 +262,6 @@ with export_col:
         file_name=f"kavach_forecast_{df.index[-1].strftime('%Y%m%d_%H%M')}.csv",
         mime="text/csv"
     )
-
-hist_n = min(len(df), 150)
-t_hist = df.index[-hist_n:]
-f_hist = df["flux"].values[-hist_n:]
-last_t = t_hist[-1]
-t_fut  = [last_t + pd.Timedelta(minutes=5*i) for i in range(1, 145)]
-tft_f  = np.linspace(log_flux, f12h, 144) + 0.04*np.sin(np.linspace(0, 3*np.pi, 144))
-phy_f  = np.linspace(log_flux, phys["T+12h"], 144)
 
 fig = go.Figure()
 fig.add_trace(go.Scatter(
