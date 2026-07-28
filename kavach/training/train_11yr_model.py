@@ -111,7 +111,7 @@ def train_11yr_model(data_path: str = "kavach/data/archive_11yr_goes_grasp.csv",
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     
-    model = build_tft(num_features=15, num_quantiles=5).to(device)
+    model = build_tft(num_features=19, num_quantiles=5).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
     criterion = PhysicsInformedPinballLoss(quantiles=[0.1, 0.25, 0.5, 0.75, 0.9], lambda_physics=0.15)
