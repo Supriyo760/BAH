@@ -19,18 +19,31 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
     Returns a processed 19-feature pandas DataFrame ready for KAVACH TFT inference.
     If live endpoint is unreachable (e.g. offline/network blocked), returns fallback synthetic stream.
     """
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*"
+    }
     try:
-        r_plasma = requests.get(NOAA_PLASMA_URL, headers=headers, timeout=timeout_sec).json()
-        r_mag    = requests.get(NOAA_MAG_URL, headers=headers, timeout=timeout_sec).json()
+        resp_p = requests.get(NOAA_PLASMA_URL, headers=headers, timeout=timeout_sec)
+        resp_m = requests.get(NOAA_MAG_URL, headers=headers, timeout=timeout_sec)
+        
+        if resp_p.status_code != 200 or resp_m.status_code != 200:
+            raise ValueError(f"HTTP {resp_p.status_code}/{resp_m.status_code}")
+            
+        if not (resp_p.text.strip().startswith("[") or resp_p.text.strip().startswith("{")):
+            raise ValueError("Non-JSON Response received from NOAA SWPC")
+            
+        r_plasma = resp_p.json()
+        r_mag    = resp_m.json()
         
         # Try fetching official planetary Kp index feed
         live_kp_val = None
         try:
-            r_kp = requests.get(NOAA_KP_URL, headers=headers, timeout=timeout_sec).json()
-            if isinstance(r_kp, list) and len(r_kp) > 1:
-                # Latest row in Kp JSON: [time_tag, kp, kp_fraction, a_running, station_count]
-                live_kp_val = float(r_kp[-1][1])
+            resp_k = requests.get(NOAA_KP_URL, headers=headers, timeout=timeout_sec)
+            if resp_k.status_code == 200 and (resp_k.text.strip().startswith("[") or resp_k.text.strip().startswith("{")):
+                r_kp = resp_k.json()
+                if isinstance(r_kp, list) and len(r_kp) > 1:
+                    live_kp_val = float(r_kp[-1][1])
         except Exception:
             live_kp_val = None
         
