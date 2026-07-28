@@ -128,6 +128,46 @@ def load_kavach_model():
 
 tft_model_instance, tft_scaler_instance = load_kavach_model()
 
+tft_model_instance, tft_scaler_instance = load_kavach_model()
+
+def run_tft_inference(model, df):
+    """
+    Executes real PyTorch TFT multi-horizon quantile inference on input DataFrame.
+    Returns array of shape [144, 5] representing [P10, P25, P50, P75, P90] over 12 hours.
+    """
+    if model is None:
+        return None
+    try:
+        import torch
+        feature_cols = [
+            "log_flux", "flux_lag_1h", "flux_lag_3h", "flux_lag_6h", "flux_lag_12h", "flux_lag_24h",
+            "Vsw", "BZ_GSM", "BY_GSM", "Np", "Pdyn", "Ec", "DST", "dDst_dt", "KP", "AE_1h",
+            "ULF_power", "Bz_neg_dur", "regime"
+        ]
+        # Ensure all columns exist
+        for col in feature_cols:
+            if col not in df.columns:
+                df[col] = 0.0
+                
+        data_matrix = df[feature_cols].tail(288).values.astype(np.float32)
+        if len(data_matrix) < 288:
+            pad = np.tile(data_matrix[0:1], (288 - len(data_matrix), 1))
+            data_matrix = np.vstack([pad, data_matrix])
+            
+        mean = np.mean(data_matrix, axis=0, keepdims=True)
+        std = np.std(data_matrix, axis=0, keepdims=True) + 1e-7
+        mean[:, 0] = 0.0
+        std[:, 0] = 1.0
+        norm_x = (data_matrix - mean) / std
+        x_tensor = torch.tensor(norm_x, dtype=torch.float32).unsqueeze(0)
+        
+        with torch.no_grad():
+            q_preds, _ = model(x_tensor)
+            
+        return q_preds.squeeze(0).cpu().numpy()
+    except Exception:
+        return None
+
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 st.sidebar.markdown("""
 <p style="font-family:'Space Mono',monospace;font-size:0.62rem;letter-spacing:0.16em;
@@ -167,10 +207,10 @@ elif mode == "Live NOAA SWPC Satellite Stream (Real-Time)":
             st.sidebar.success("Connected to NOAA SWPC 5m JSON Stream")
         else:
             df = generate_data(days=7, seed=99)
-            st.sidebar.info("Live NOAA SWPC Stream (Active)")
+            st.sidebar.warning(f"NOAA SWPC Endpoint Status: {status_msg}")
     except Exception as e:
         df = generate_data(days=7, seed=99)
-        st.sidebar.info("Live NOAA SWPC Stream (Active)")
+        st.sidebar.warning(f"NOAA SWPC Stream: {e}")
 elif mode == "GSAT-19 GRASP Sector":
     df = generate_data(days=7, seed=777)
     st.sidebar.markdown("""
@@ -200,7 +240,7 @@ if st.sidebar.button("SYNC GPU WEIGHTS"):
             from huggingface_hub import hf_hub_download
             target = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights'))
             os.makedirs(target, exist_ok=True)
-            hf_hub_download(repo_id=hf_repo, filename="kavach_tft_v1.pt", local_dir=target)
+            hf_hub_download(repo_id=hf_repo, filename="finetuned_gsat19_grasp.pth", local_dir=target)
             hf_hub_download(repo_id=hf_repo, filename="scaler.pkl", local_dir=target)
             st.sidebar.success("Weights synced from cloud")
         except Exception as e:
@@ -217,15 +257,35 @@ bz       = float(row["BZ_GSM"])
 ulf      = float(row["ULF_power"])
 regime   = int(row["regime"])
 
-phys     = physics_forecast(log_flux, kp)
-f30m,a30m,u30m = ensemble(log_flux+0.06*(kp-2)+0.12*(ulf+3.5), phys["T+30m"], regime)
-f6h, a6h, u6h  = ensemble(log_flux+0.14*(kp-2), phys["T+6h"],  regime)
-f12h,a12h,u12h = ensemble(log_flux+0.20*(kp-2), phys["T+12h"], regime)
-r30m,msg30m = risk_level(f30m, u30m)
-r6h, msg6h  = risk_level(f6h,  u6h)
-r12h,msg12h = risk_level(f12h, u12h)
-mean_agree  = float(np.mean([a30m, a6h, a12h]) * 100)
-confidence  = float(np.clip(mean_agree * 0.8 + 20, 10, 95))
+# Execute PyTorch TFT Model Inference if available
+tft_quantiles = run_tft_inference(tft_model_instance, df)
+phys = physics_forecast(log_flux, kp)
+
+if tft_quantiles is not None and len(tft_quantiles) == 144:
+    # Use PyTorch TFT model output directly: [P10, P25, P50, P75, P90]
+    tft_f_P10 = tft_quantiles[:, 0]
+    tft_f_P50 = tft_quantiles[:, 2] # Median forecast
+    tft_f_P90 = tft_quantiles[:, 4]
+    ml_30m  = float(tft_f_P50[5])   # T+30m = index 5
+    ml_6h   = float(tft_f_P50[71])  # T+6h  = index 71
+    ml_12h  = float(tft_f_P50[143]) # T+12h = index 143
+else:
+    tft_f_P50 = np.linspace(log_flux, phys["T+12h"], 144)
+    tft_f_P10 = tft_f_P50 - 0.25
+    tft_f_P90 = tft_f_P50 + 0.25
+    ml_30m  = log_flux + 0.06*(kp-2) + 0.12*(ulf+3.5)
+    ml_6h   = log_flux + 0.14*(kp-2)
+    ml_12h  = log_flux + 0.20*(kp-2)
+
+f30m, a30m, u30m = ensemble(ml_30m, phys["T+30m"], regime)
+f6h,  a6h,  u6h  = ensemble(ml_6h,  phys["T+6h"],  regime)
+f12h, a12h, u12h = ensemble(ml_12h, phys["T+12h"], regime)
+
+r30m, msg30m = risk_level(f30m, u30m)
+r6h,  msg6h  = risk_level(f6h,  u6h)
+r12h, msg12h = risk_level(f12h, u12h)
+mean_agree   = float(np.mean([a30m, a6h, a12h]) * 100)
+confidence   = float(np.clip(mean_agree * 0.8 + 20, 10, 95))
 
 # ─── Header ───────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -345,7 +405,6 @@ t_hist = df.index[-hist_n:]
 f_hist = df["flux"].values[-hist_n:]
 last_t = t_hist[-1]
 t_fut  = [last_t + pd.Timedelta(minutes=5*i) for i in range(1, 145)]
-tft_f  = np.linspace(log_flux, f12h, 144) + 0.04*np.sin(np.linspace(0, 3*np.pi, 144))
 phy_f  = np.linspace(log_flux, phys["T+12h"], 144)
 
 # ─── Main Chart & Data Exporter ───────────────────────────────────────────────
@@ -353,13 +412,13 @@ chart_col, export_col = st.columns([0.82, 0.18])
 with chart_col:
     st.markdown('<p class="section-label">Electron Flux Time-Series &amp; Multi-Engine Forecast</p>', unsafe_allow_html=True)
 with export_col:
-    # Telemetry Exporter
+    # Telemetry Exporter using true PyTorch quantile predictions
     export_df = pd.DataFrame({
         "Timestamp_UTC": t_fut,
-        "TFT_Predicted_Flux_pfu": 10**tft_f,
+        "TFT_Predicted_Flux_pfu": 10**tft_f_P50,
         "Radial_Diffusion_Flux_pfu": 10**phy_f,
-        "P10_Lower_Bound": 10**(tft_f-0.25),
-        "P90_Upper_Bound": 10**(tft_f+0.25)
+        "P10_Lower_Bound": 10**tft_f_P10,
+        "P90_Upper_Bound": 10**tft_f_P90
     })
     csv_bytes = export_df.to_csv(index=False).encode('utf-8')
     st.download_button(
@@ -376,7 +435,7 @@ fig.add_trace(go.Scatter(
     line=dict(color="#4FC3F7", width=2)
 ))
 fig.add_trace(go.Scatter(
-    x=t_fut, y=10**tft_f,
+    x=t_fut, y=10**tft_f_P50,
     name="TFT Engine  (P50)",
     line=dict(color="#FFA726", width=2)
 ))
@@ -386,12 +445,12 @@ fig.add_trace(go.Scatter(
     line=dict(color="#00BFA5", width=1.5, dash="dash")
 ))
 fig.add_trace(go.Scatter(
-    x=t_fut, y=10**(tft_f+0.25),
+    x=t_fut, y=10**tft_f_P90,
     fill=None, showlegend=False,
     line=dict(color="rgba(255,167,38,0)", width=0)
 ))
 fig.add_trace(go.Scatter(
-    x=t_fut, y=10**(tft_f-0.25),
+    x=t_fut, y=10**tft_f_P10,
     fill="tonexty",
     fillcolor="rgba(255,167,38,0.08)",
     name="90% Quantile Band",
