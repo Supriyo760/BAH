@@ -4,6 +4,13 @@ Bharatiya Antariksh Hackathon 2026 | Team DigiIndia | PS-14 ISRO
 NASA Eyes-inspired deep-space telemetry aesthetic (Text-only, No Emojis).
 """
 import os
+import sys
+
+# Ensure root project directory is in sys.path for Streamlit Cloud deployment
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
