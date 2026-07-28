@@ -41,6 +41,16 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
             r_mag    = resp_m.json()
         except Exception as json_err:
             raise ValueError(f"Failed to parse NOAA SWPC JSON: {str(json_err)}")
+            
+        # Try fetching real GOES Electron Flux
+        df_goes = None
+        try:
+            resp_g = requests.get(NOAA_GOES_URL, headers=headers, timeout=timeout_sec)
+            if resp_g.status_code == 200 and (resp_g.text.strip().startswith("[") or resp_g.text.strip().startswith("{")):
+                r_goes = resp_g.json()
+                df_goes = pd.DataFrame([d for d in r_goes if d.get('energy') == '>=2 MeV'])
+        except Exception:
+            pass
         
         # Try fetching official planetary Kp index feed
         live_kp_val = None
@@ -56,8 +66,17 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         df_plasma = pd.DataFrame(r_plasma)
         df_mag    = pd.DataFrame(r_mag)
         
-        # Merge telemetry on time_tag
+        # Merge telemetry on time_tag and Resample to 5-minute to match AI Model expectations
         df_merged = pd.merge(df_plasma, df_mag, on="time_tag", how="inner")
+        df_merged["time_tag"] = pd.to_datetime(df_merged["time_tag"], utc=True)
+        df_merged.set_index("time_tag", inplace=True)
+        df_merged = df_merged.resample("5min").mean(numeric_only=True)
+        
+        if df_goes is not None and not df_goes.empty:
+            df_goes["time_tag"] = pd.to_datetime(df_goes["time_tag"], utc=True)
+            df_goes.set_index("time_tag", inplace=True)
+            df_goes = df_goes.resample("5min").mean(numeric_only=True)
+            df_merged = df_merged.join(df_goes, how="left")
         
         # Extract features (handling both RTSW and DSCOVR field names)
         vsw_raw = df_merged.get("proton_speed", df_merged.get("speed", 400.0))
@@ -71,7 +90,7 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         np_d = pd.to_numeric(np_raw, errors="coerce").fillna(5.0).values
         
         n = len(vsw)
-        dates = pd.to_datetime(df_merged["time_tag"])
+        dates = df_merged.index
         
         bt    = np.sqrt(by**2 + bz**2)
         theta = np.arctan2(by, bz)
@@ -83,12 +102,21 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         else:
             kp = np.clip(2 + 0.01*(vsw-400) + 0.3*np.abs(bz), 0, 9)
             
-        dst   = -10 - 15*(kp/3.0)**1.5
+        dst   = -10 - 15*(kp/3.0)**1.5  # Mathematical fallback (Live Kyoto API usually requires auth)
         ae    = 100 + 120*(kp/2.0)
-        ulf   = -3.5 + 0.4*(kp/3.0)
+        ulf   = -3.5 + 0.4*(kp/3.0)     # Mathematical fallback (Live Ground Mags require separate API)
         
-        log_flux = pd.Series(2.3 + 0.005*(vsw-400) + 0.3*(kp-2)).ewm(span=18).mean().values
-        flux     = np.clip(10**log_flux, 0.1, None)
+        # Incorporate Real GOES Flux with fallback for missing values
+        fallback_log_flux = pd.Series(2.3 + 0.005*(vsw-400) + 0.3*(kp-2)).ewm(span=18).mean().values
+        fallback_flux = np.clip(10**fallback_log_flux, 0.1, None)
+        
+        if "flux" in df_merged.columns:
+            flux_series = pd.to_numeric(df_merged["flux"], errors="coerce")
+            flux = flux_series.fillna(pd.Series(fallback_flux, index=dates)).values
+        else:
+            flux = fallback_flux
+            
+        log_flux = np.log10(np.maximum(flux, 1e-3))
         
         bz_neg     = pd.Series((bz < 0).astype(int))
         bz_neg_dur = bz_neg.groupby((bz_neg != bz_neg.shift()).cumsum()).cumcount().values * 5.0
@@ -97,7 +125,7 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         regime     = np.where(kp >= 6, 2, np.where(kp >= 3, 1, 0))
         
         df = pd.DataFrame({
-            "flux": flux, "log_flux": np.log10(np.maximum(flux, 1e-3)),
+            "flux": flux, "log_flux": log_flux,
             "Vsw": vsw, "BZ_GSM": bz, "BY_GSM": by, "BT": bt,
             "Np": np_d, "KP": kp, "DST": dst, "AE": ae, "ULF_power": ulf,
             "Ec": ec, "Pdyn": pdyn, "Bz_neg_dur": bz_neg_dur, "dDst_dt": dDst,
