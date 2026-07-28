@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-NOAA_PLASMA_URL = "https://services.swpc.noaa.gov/json/dscovr/dscovr_plasma_5m.json"
-NOAA_MAG_URL    = "https://services.swpc.noaa.gov/json/dscovr/dscovr_mag_5m.json"
+NOAA_PLASMA_URL = "https://services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json"
+NOAA_MAG_URL    = "https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json"
 NOAA_GOES_URL   = "https://services.swpc.noaa.gov/json/goes/primary/integral-electrons-1-day.json"
 NOAA_KP_URL     = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
 
@@ -19,14 +19,15 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
     Returns a processed 19-feature pandas DataFrame ready for KAVACH TFT inference.
     If live endpoint is unreachable (e.g. offline/network blocked), returns fallback synthetic stream.
     """
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     try:
-        r_plasma = requests.get(NOAA_PLASMA_URL, timeout=timeout_sec).json()
-        r_mag    = requests.get(NOAA_MAG_URL, timeout=timeout_sec).json()
+        r_plasma = requests.get(NOAA_PLASMA_URL, headers=headers, timeout=timeout_sec).json()
+        r_mag    = requests.get(NOAA_MAG_URL, headers=headers, timeout=timeout_sec).json()
         
         # Try fetching official planetary Kp index feed
         live_kp_val = None
         try:
-            r_kp = requests.get(NOAA_KP_URL, timeout=timeout_sec).json()
+            r_kp = requests.get(NOAA_KP_URL, headers=headers, timeout=timeout_sec).json()
             if isinstance(r_kp, list) and len(r_kp) > 1:
                 # Latest row in Kp JSON: [time_tag, kp, kp_fraction, a_running, station_count]
                 live_kp_val = float(r_kp[-1][1])
@@ -39,11 +40,16 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         # Merge telemetry on time_tag
         df_merged = pd.merge(df_plasma, df_mag, on="time_tag", how="inner")
         
-        # Extract features
-        vsw  = pd.to_numeric(df_merged.get("speed", 400), errors="coerce").fillna(400.0).values
-        bz   = pd.to_numeric(df_merged.get("bz_gsm", 0), errors="coerce").fillna(0.0).values
-        by   = pd.to_numeric(df_merged.get("by_gsm", 0), errors="coerce").fillna(0.0).values
-        np_d = pd.to_numeric(df_merged.get("density", 5), errors="coerce").fillna(5.0).values
+        # Extract features (handling both RTSW and DSCOVR field names)
+        vsw_raw = df_merged.get("proton_speed", df_merged.get("speed", 400.0))
+        bz_raw  = df_merged.get("bz_gsm", 0.0)
+        by_raw  = df_merged.get("by_gsm", 0.0)
+        np_raw  = df_merged.get("proton_density", df_merged.get("density", 5.0))
+        
+        vsw  = pd.to_numeric(vsw_raw, errors="coerce").fillna(400.0).values
+        bz   = pd.to_numeric(bz_raw, errors="coerce").fillna(0.0).values
+        by   = pd.to_numeric(by_raw, errors="coerce").fillna(0.0).values
+        np_d = pd.to_numeric(np_raw, errors="coerce").fillna(5.0).values
         
         n = len(vsw)
         dates = pd.to_datetime(df_merged["time_tag"])
