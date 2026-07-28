@@ -31,10 +31,16 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
             raise ValueError(f"HTTP {resp_p.status_code}/{resp_m.status_code}")
             
         if not (resp_p.text.strip().startswith("[") or resp_p.text.strip().startswith("{")):
-            raise ValueError("Non-JSON Response received from NOAA SWPC")
+            raise ValueError("NOAA SWPC Plasma API returned non-JSON data (possibly rate-limited or blocked)")
             
-        r_plasma = resp_p.json()
-        r_mag    = resp_m.json()
+        if not (resp_m.text.strip().startswith("[") or resp_m.text.strip().startswith("{")):
+            raise ValueError("NOAA SWPC Mag API returned non-JSON data (possibly rate-limited or blocked)")
+            
+        try:
+            r_plasma = resp_p.json()
+            r_mag    = resp_m.json()
+        except Exception as json_err:
+            raise ValueError(f"Failed to parse NOAA SWPC JSON: {str(json_err)}")
         
         # Try fetching official planetary Kp index feed
         live_kp_val = None
