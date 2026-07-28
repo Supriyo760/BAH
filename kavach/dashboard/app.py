@@ -137,7 +137,7 @@ tft_model_instance, tft_scaler_instance = load_kavach_model()
 
 tft_model_instance, tft_scaler_instance = load_kavach_model()
 
-def run_tft_inference(model, df):
+def run_tft_inference(model, scaler, df):
     """
     Executes real PyTorch TFT multi-horizon quantile inference on input DataFrame.
     Returns array of shape [144, 5] representing [P10, P25, P50, P75, P90] over 12 hours.
@@ -161,11 +161,14 @@ def run_tft_inference(model, df):
             pad = np.tile(data_matrix[0:1], (288 - len(data_matrix), 1))
             data_matrix = np.vstack([pad, data_matrix])
             
-        mean = np.mean(data_matrix, axis=0, keepdims=True)
-        std = np.std(data_matrix, axis=0, keepdims=True) + 1e-7
-        mean[:, 0] = 0.0
-        std[:, 0] = 1.0
-        norm_x = (data_matrix - mean) / std
+        if scaler is not None:
+            norm_x = scaler.transform(data_matrix)
+        else:
+            mean = np.mean(data_matrix, axis=0, keepdims=True)
+            std = np.std(data_matrix, axis=0, keepdims=True) + 1e-7
+            mean[:, 0] = 0.0
+            std[:, 0] = 1.0
+            norm_x = (data_matrix - mean) / std
         x_tensor = torch.tensor(norm_x, dtype=torch.float32).unsqueeze(0)
         
         with torch.no_grad():
@@ -265,7 +268,7 @@ ulf      = float(row["ULF_power"])
 regime   = int(row["regime"])
 
 # Execute PyTorch TFT Model Inference if available
-tft_quantiles = run_tft_inference(tft_model_instance, df)
+tft_quantiles = run_tft_inference(tft_model_instance, tft_scaler_instance, df)
 phys = physics_forecast(log_flux, kp)
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
