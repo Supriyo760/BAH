@@ -135,8 +135,6 @@ def load_kavach_model():
 
 tft_model_instance, tft_scaler_instance = load_kavach_model()
 
-tft_model_instance, tft_scaler_instance = load_kavach_model()
-
 def run_tft_inference(model, scaler, df):
     """
     Executes real PyTorch TFT multi-horizon quantile inference on input DataFrame.
@@ -243,7 +241,8 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("""<p style="font-family:'Space Mono',monospace;font-size:0.62rem;
 letter-spacing:0.14em;color:#3D5A70;text-transform:uppercase;margin:0 0 8px 0">
 MLOps Cloud Registry</p>""", unsafe_allow_html=True)
-hf_repo = st.sidebar.text_input("HF MODEL REPO", "Supriyo760/kavach-weights")
+hf_repo = "Supriyo760/kavach-weights"
+st.sidebar.text_input("HF MODEL REPO", hf_repo, disabled=True, help="Locked to official DigiIndia weights to prevent malicious code execution.")
 if st.sidebar.button("SYNC GPU WEIGHTS"):
     with st.sidebar.status("Connecting to registry..."):
         try:
