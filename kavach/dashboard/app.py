@@ -400,8 +400,15 @@ st.markdown("<hr style='margin:8px 0 20px 0'>", unsafe_allow_html=True)
 
 # ─── KPI Cards ────────────────────────────────────────────────────────────────
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("LIVE FLUX  (>2 MeV)", f"{flux:.2e} pfu",
-          f"{'+18%' if kp > 4 else '-5%'}  vs 1h ago")
+# Calculate true 1-hour delta (1 hour = 12 5-minute intervals)
+if len(df) > 12:
+    flux_1h_ago = df["flux"].iloc[-13]
+    flux_delta_pct = ((flux - flux_1h_ago) / flux_1h_ago) * 100
+    delta_str = f"{'+' if flux_delta_pct > 0 else ''}{flux_delta_pct:.0f}%  vs 1h ago"
+else:
+    delta_str = "Insufficient data for delta"
+
+c1.metric("LIVE FLUX  (>2 MeV)", f"{flux:.2e} pfu", delta_str)
 c2.metric("REGIME STATE", REGIME_LABELS[regime], f"Kp = {kp:.1f} | Dst = {dst:.0f} nT")
 c3.metric("MODEL CONFIDENCE", f"{confidence:.0f}%",
           "Widened — Storm" if kp > 5 else "Stable")
