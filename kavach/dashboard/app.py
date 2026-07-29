@@ -109,19 +109,8 @@ def physics_forecast(log_flux, kp):
             "T+6h":  log_flux+drive*1.0-decay*1.0,
             "T+12h": log_flux+drive*1.8-decay*2.0}
 
-def ensemble(ml, ph, regime):
-    w = 0.65 if regime == 2 else 0.55
-    fused = w*ml + (1-w)*ph
-    agree = 1.0 - min(abs(ml-ph)/2.0, 0.99)
-    uncert = 0.05 + 0.15*(1-agree) + 0.05*(regime==2)
-    return float(fused), float(agree), float(uncert)
-
-def risk_level(fused, uncert):
-    if fused > 3.5 or (fused > 3.0 and uncert > 0.2):
-        return "RED", "Elevated proton/electron flux. Uplink anomaly risk HIGH."
-    if fused > 2.5:
-        return "YELLOW", "Moderate flux. Monitor payload operations closely."
-    return "GREEN", "Nominal radiation environment. Normal operations."
+from kavach.models.ensemble import ensemble_forecast as ensemble
+from kavach.models.ensemble import classify_risk as risk_level
 
 REGIME_LABELS = {0:"QUIET  (Kp < 3)", 1:"MODERATE  (Kp 3–6)", 2:"STORM  (Kp ≥ 6)"}
 STORM_SEEDS = {"Gannon Storm (May 2024)":7,"Halloween Storm (2003)":31,
