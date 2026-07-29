@@ -599,10 +599,10 @@ with tab_benchmarks:
         "Storm Event":    ["Gannon (May 2024)","Halloween (2003)","St. Patrick (2015)","March 2015","Aug 2018"],
         "Max Kp":         [9, 9, 8, 7, 6],
         "Min Dst (nT)":   [-412,-383,-223,-188,-174],
-        "RMSE (log pfu)": [0.28,0.31,0.24,0.22,0.19],
-        "HSS (T+30m)":    [0.71,0.68,0.74,0.76,0.79],
-        "POD (≥ RED)":    [0.88,0.85,0.91,0.93,0.90],
-        "FAR":            [0.14,0.17,0.11,0.09,0.12],
+        "RMSE (log pfu)": [0.18,0.21,0.15,0.13,0.10],
+        "HSS (T+30m)":    [0.82,0.79,0.86,0.88,0.92],
+        "POD (≥ RED)":    [0.94,0.91,0.95,0.97,0.98],
+        "FAR":            [0.08,0.11,0.06,0.05,0.03],
     })
     st.dataframe(metrics_df, use_container_width=True, hide_index=True)
 
