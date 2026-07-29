@@ -137,7 +137,7 @@ STORM_META = {
 
 @st.cache_resource
 def load_kavach_model():
-    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'finetuned_gsat19_grasp.pth'))
+    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'tft_model_11yr.pth'))
     scaler_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler.pkl'))
     model = None
     scaler = None
