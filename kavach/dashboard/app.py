@@ -306,7 +306,7 @@ if st.sidebar.button("SYNC GPU WEIGHTS"):
             from huggingface_hub import hf_hub_download
             target = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights'))
             os.makedirs(target, exist_ok=True)
-            hf_hub_download(repo_id=hf_repo, filename="finetuned_gsat19_grasp.pth", local_dir=target)
+            hf_hub_download(repo_id=hf_repo, filename="finetuned_gsat19_grasp_ulf.pth", local_dir=target)
             hf_hub_download(repo_id=hf_repo, filename="scaler.pkl", local_dir=target)
             st.sidebar.success("Weights synced from cloud")
         except Exception as e:
@@ -581,7 +581,7 @@ with tab_drivers:
     st.markdown('<p class="section-label">Solar Wind Feature Attribution & Precursors</p>', unsafe_allow_html=True)
     d1, d2 = st.columns(2)
     with d1:
-        if 'tft_attn' in locals() and tft_attn is not None and len(tft_attn) >= 10:
+        if 'tft_attn' in locals() and tft_attn is not None and getattr(tft_attn, 'shape', (0,))[0] >= 10:
             pct_vsw = float(tft_attn[1])
             pct_bz = float(tft_attn[2])
             pct_ulf = float(tft_attn[9])
@@ -619,6 +619,7 @@ with tab_drivers:
 
 with tab_benchmarks:
     st.markdown('<p class="section-label">Historical Storm Replay Performance Benchmarks</p>', unsafe_allow_html=True)
+    st.caption("Note: The scores below represent offline backtest validation targets for these specific storm events. They are not computed dynamically in real-time.")
     metrics_df = pd.DataFrame({
         "Storm Event":    ["Gannon (May 2024)","Halloween (2003)","St. Patrick (2015)","March 2015","Aug 2018"],
         "Max Kp":         [9, 9, 8, 7, 6],
