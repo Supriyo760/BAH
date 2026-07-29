@@ -139,9 +139,8 @@ def train_11yr_model(data_path: str = "kavach/data/archive_11yr_goes_grasp.csv",
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
-            for x, y in enumerate(val_loader):
-                if isinstance(x, int): continue
-                x_val, y_val = x[1].to(device), y[1].to(device)
+            for x_val, y_val in val_loader:  # FIX: was broken as enumerate(val_loader)
+                x_val, y_val = x_val.to(device), y_val.to(device)
                 preds, _ = model(x_val)
                 loss = criterion(preds, y_val)
                 val_loss += loss.item() * x_val.size(0)

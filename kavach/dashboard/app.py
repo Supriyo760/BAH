@@ -103,12 +103,7 @@ def generate_storm(name, seed):
     return generate_data(days=dur, seed=seed, end_time=end_t)
 
 # ─── Physics & Ensemble ───────────────────────────────────────────────────────
-def physics_forecast(log_flux, kp):
-    decay = 0.05; drive = 0.08 * max(kp - 2, 0)
-    return {"T+30m": log_flux+drive*0.08-decay*0.08,
-            "T+6h":  log_flux+drive*1.0-decay*1.0,
-            "T+12h": log_flux+drive*1.8-decay*2.0}
-
+from kavach.models.radial_diff import run_physics_forecast as physics_forecast
 from kavach.models.ensemble import ensemble_forecast as ensemble
 from kavach.models.ensemble import classify_risk as risk_level
 
