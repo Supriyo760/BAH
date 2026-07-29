@@ -98,8 +98,8 @@ def generate_storm(name, seed):
                     if c not in df_storm.columns: df_storm[c] = 0.0
                 return df_storm.bfill().fillna(0)
     except Exception as e:
-        pass
-        
+        import streamlit as st
+        st.sidebar.error(f"Storm generation error: {e}")
     return generate_data(days=dur, seed=seed, end_time=end_t)
 
 # ─── Physics & Ensemble ───────────────────────────────────────────────────────
@@ -148,13 +148,17 @@ def load_kavach_model():
             model = build_tft(num_features=10, num_quantiles=5)
             model.load_state_dict(torch.load(weights_path, map_location="cpu"))
             model.eval()
-        except Exception:
+        except Exception as e:
+            import streamlit as st
+            st.error(f"Failed to load weights: {e}")
             model = None
     if os.path.exists(scaler_path):
         try:
             import joblib
             scaler = joblib.load(scaler_path)
-        except Exception:
+        except Exception as e:
+            import streamlit as st
+            st.error(f"Failed to load scaler: {e}")
             scaler = None
     return model, scaler
 
@@ -166,7 +170,7 @@ def run_tft_inference(model, scaler, df):
     Returns array of shape [144, 5] representing [P10, P25, P50, P75, P90] over 12 hours.
     """
     if model is None:
-        return None
+        return None, None
     try:
         import torch
         # FIX #3: Copy the dataframe so we do not mutate the global state in Replay mode
@@ -193,7 +197,10 @@ def run_tft_inference(model, scaler, df):
             data_matrix = np.vstack([pad, data_matrix])
             
         if scaler is not None:
-            norm_x = scaler.transform(data_matrix)
+            if isinstance(scaler, dict) and 'mean' in scaler and 'std' in scaler:
+                norm_x = (data_matrix - scaler['mean']) / scaler['std']
+            else:
+                norm_x = scaler.transform(data_matrix)
         else:
             mean = np.mean(data_matrix, axis=0, keepdims=True)
             std = np.std(data_matrix, axis=0, keepdims=True) + 1e-7
