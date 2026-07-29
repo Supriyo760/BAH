@@ -202,10 +202,12 @@ def run_tft_inference(model, scaler, df):
         
         with torch.no_grad():
             q_preds, _ = model(x_tensor)
+            # Extract real Variable Selection Network (VSN) attention weights!
+            attn_scores = torch.softmax(model.vsn_weights(x_tensor.mean(dim=1)), dim=-1).squeeze(0).cpu().numpy()
             
-        return q_preds.squeeze(0).cpu().numpy()
+        return q_preds.squeeze(0).cpu().numpy(), attn_scores
     except Exception:
-        return None
+        return None, None
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 st.sidebar.markdown("""
@@ -298,8 +300,11 @@ ulf      = float(row["ULF_power"])
 regime   = int(row["regime"])
 
 # Execute PyTorch TFT Model Inference if available
-tft_quantiles = run_tft_inference(tft_model_instance, tft_scaler_instance, df)
+tft_res = run_tft_inference(tft_model_instance, tft_scaler_instance, df)
 phys = physics_forecast(log_flux, kp)
+
+tft_quantiles = tft_res[0] if tft_res is not None else None
+tft_attn = tft_res[1] if tft_res is not None else None
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
     # Use PyTorch TFT model output directly: [P10, P25, P50, P75, P90]
@@ -545,11 +550,22 @@ with tab_drivers:
     st.markdown('<p class="section-label">Solar Wind Feature Attribution & Precursors</p>', unsafe_allow_html=True)
     d1, d2 = st.columns(2)
     with d1:
+        if 'tft_attn' in locals() and tft_attn is not None and len(tft_attn) >= 10:
+            pct_vsw = float(tft_attn[1])
+            pct_bz = float(tft_attn[2])
+            pct_ulf = float(tft_attn[9])
+            pct_pdyn = float(tft_attn[5])
+        else:
+            pct_vsw = min(0.95, vsw/800)
+            pct_bz = min(0.95, abs(bz)/20)
+            pct_ulf = min(0.95, (ulf+4)/2.5)
+            pct_pdyn = min(0.95, kp/9)
+
         drivers = [
-            ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       min(0.95, vsw/800)),
-            ("Bz — Southward IMF (GSM)",           f"{bz:.1f} nT",          min(0.95, abs(bz)/20)),
-            ("ULF — Pc5 Wave Power (30-min lead)", f"{ulf:.2f} log(nT²/Hz)",min(0.95, (ulf+4)/2.5)),
-            ("Kp — Geomagnetic Index",             f"{kp:.1f}",             min(0.95, kp/9)),
+            ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       pct_vsw),
+            ("Bz — Southward IMF (GSM)",           f"{bz:.1f} nT",          pct_bz),
+            ("ULF — Pc5 Wave Power (30-min lead)", f"{ulf:.2f} log(nT²/Hz)",pct_ulf),
+            ("Pdyn — Dynamic Pressure",            f"{float(row.get('Pdyn', 0)):.2f} nPa", pct_pdyn),
         ]
         for name, val, pct in drivers:
             pct_val = float(np.clip(pct, 0.03, 1.0))
