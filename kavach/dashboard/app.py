@@ -137,7 +137,7 @@ STORM_META = {
 
 @st.cache_resource
 def load_kavach_model():
-    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'tft_model_11yr.pth'))
+    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'finetuned_gsat19_grasp_ulf.pth'))
     scaler_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler.pkl'))
     model = None
     scaler = None
@@ -145,7 +145,7 @@ def load_kavach_model():
         try:
             import torch
             from kavach.models.tft_model import build_tft
-            model = build_tft(num_features=19, num_quantiles=5)
+            model = build_tft(num_features=10, num_quantiles=5)
             model.load_state_dict(torch.load(weights_path, map_location="cpu"))
             model.eval()
         except Exception:
@@ -169,16 +169,22 @@ def run_tft_inference(model, scaler, df):
         return None
     try:
         import torch
+        df['log_electron_flux'] = df.get('log_flux', 0.0)
+        df['Flow_Speed'] = df.get('Vsw', 0.0)
+        df['Bz_GSM'] = df.get('BZ_GSM', 0.0)
+        df['Proton_Density'] = df.get('Np', 0.0)
+        df['Temperature'] = 100000.0
+        df['Flow_Pressure'] = df.get('Pdyn', 0.0)
+        df['log_flux_t-1h'] = df.get('flux_lag_1h', 0.0)
+        df['log_flux_t-3h'] = df.get('flux_lag_3h', 0.0)
+        df['log_flux_t-24h'] = df.get('flux_lag_24h', 0.0)
+        df['ULF_Power'] = df.get('ULF_power', 0.0)
+
         feature_cols = [
-            "log_flux", "flux_lag_1h", "flux_lag_3h", "flux_lag_6h", "flux_lag_12h", "flux_lag_24h",
-            "Vsw", "BZ_GSM", "BY_GSM", "Np", "Pdyn", "Ec", "DST", "dDst_dt", "KP", "AE_1h",
-            "ULF_power", "Bz_neg_dur", "regime"
+            "log_electron_flux", "Flow_Speed", "Bz_GSM", "Proton_Density", "Temperature", "Flow_Pressure",
+            "log_flux_t-1h", "log_flux_t-3h", "log_flux_t-24h", "ULF_Power"
         ]
-        # Ensure all columns exist
-        for col in feature_cols:
-            if col not in df.columns:
-                df[col] = 0.0
-                
+        
         data_matrix = df[feature_cols].tail(288).values.astype(np.float32)
         if len(data_matrix) < 288:
             pad = np.tile(data_matrix[0:1], (288 - len(data_matrix), 1))

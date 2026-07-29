@@ -1,142 +1,109 @@
 """
-Temporal Fusion Transformer Training Script
+Transfer Learning & Fine-Tuning Script
 KAVACH — GEO Radiation Monitor | Team DigiIndia
 """
 import os
 import torch
 import numpy as np
 import pandas as pd
+import joblib
+from sklearn.preprocessing import StandardScaler
+from kavach.models.tft_model import build_tft, PhysicsInformedPinballLoss
 
-def save_scaler(scaler, filepath):
-    try:
-        import joblib
-        joblib.dump(scaler, filepath)
-    except Exception:
-        import pickle
-        with open(filepath, 'wb') as f:
-            pickle.dump(scaler, f)
-
-def load_scaler(filepath):
-    try:
-        import joblib
-        return joblib.load(filepath)
-    except Exception:
-        import pickle
-        with open(filepath, 'rb') as f:
-            return pickle.load(f)
-
-def sync_from_huggingface(repo_id: str = "DigiIndia/kavach-weights", target_dir: str = "kavach/weights") -> bool:
-    """Downloads latest model weights and scaler from Hugging Face Model Hub (MLOps Bridge)."""
-    try:
-        from huggingface_hub import hf_hub_download
-        os.makedirs(target_dir, exist_ok=True)
-        hf_hub_download(repo_id=repo_id, filename="kavach_tft_v1.pt", local_dir=target_dir)
-        hf_hub_download(repo_id=repo_id, filename="scaler.pkl", local_dir=target_dir)
-        print(f"Successfully synced cloud model weights from {repo_id}")
-        return True
-    except Exception as e:
-        print(f"HF Sync Notice: Using local model checkpoint ({e})")
-        return False
-
-try:
-    from sklearn.preprocessing import StandardScaler
-except ImportError:
-    class StandardScaler:
-        def fit_transform(self, X):
-            self.mean_ = np.mean(X, axis=0)
-            self.scale_ = np.std(X, axis=0)
-            self.scale_[self.scale_ == 0] = 1.0
-            return (X - self.mean_) / self.scale_
-        def transform(self, X):
-            return (X - self.mean_) / self.scale_
-
-from kavach.models.tft_model import build_tft, PinballLoss
-from kavach.data.sample_data import generate_synthetic_dataset
-
-def train_kavach_model(data: pd.DataFrame = None, epochs: int = 5, save_dir: str = 'kavach/weights'):
-    """
-    Trains TFT model on preprocessed feature matrix with storm-weighted loss function.
-    Saves trained weights and scaler to weights/ directory.
-    """
-    os.makedirs(save_dir, exist_ok=True)
-    
-    if data is None:
-        print("Generating training dataset...")
-        data = generate_synthetic_dataset(days=14)
-
-    feature_cols = [
-        'log_flux', 'flux_lag_1h', 'flux_lag_3h', 'flux_lag_6h', 'flux_lag_12h', 'flux_lag_24h',
-        'Vsw', 'BZ_GSM', 'BY_GSM', 'Np', 'Pdyn', 'Ec', 'DST', 'dDst_dt', 'KP', 'AE_1h',
-        'ULF_power', 'Bz_neg_dur', 'regime'
-    ]
-
-    scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(data[feature_cols].values)
-
-    # Prepare 288-step sequences (24 hours) to predict 144 steps (12 hours)
-    seq_len = 288
-    pred_len = 144
-    
-    X_samples = []
-    y_samples = []
-    weights_samples = []
-
-    for i in range(len(scaled_data) - seq_len - pred_len):
-        x_chunk = scaled_data[i : i + seq_len]
-        y_chunk = data['log_flux'].values[i + seq_len : i + seq_len + pred_len]
+def train_finetune():
+    print("[KAVACH-FINETUNE] Initiating Transfer Learning Pipeline...")
+    data_path = r"DataSets\Kaggle_FineTuning_Dataset.csv"
+    if not os.path.exists(data_path):
+        print(f"Error: Dataset {data_path} not found.")
+        return
         
-        # Pitfall #8.3: Up-weight storm events (>10,000 pfu => log_flux > 4.0)
-        is_storm = (y_chunk > 4.0).any()
-        w = 5.0 if is_storm else 1.0
-
-        X_samples.append(x_chunk)
-        y_samples.append(y_chunk)
-        weights_samples.append(w)
-
+    df = pd.read_csv(data_path, parse_dates=['datetime'], index_col='datetime')
+    df.sort_index(inplace=True)
+    
+    # 1. Engineer exact features to match the 11-year base + ULF_Power
+    print("[KAVACH-FINETUNE] Feature Engineering...")
+    df['log_electron_flux'] = np.log10(np.maximum(df['Electron_Flux'], 1e-5))
+    df['Flow_Speed'] = df['V']
+    df['Bz_GSM'] = df['BZ']
+    df['Proton_Density'] = df['Density']
+    df['Temperature'] = 100000.0 # Placeholder, missing in GRASP dataset
+    df['Flow_Pressure'] = 0.5 * 1.67e-27 * (df['Density']*1e6) * (df['V']*1e3)**2 * 1e9
+    
+    df['log_flux_t-1h'] = df['log_electron_flux'].shift(12)
+    df['log_flux_t-3h'] = df['log_electron_flux'].shift(36)
+    df['log_flux_t-24h'] = df['log_electron_flux'].shift(288)
+    
+    df.dropna(inplace=True)
+    
+    feature_cols = [
+        "log_electron_flux", "Flow_Speed", "Bz_GSM", "Proton_Density", "Temperature", "Flow_Pressure",
+        "log_flux_t-1h", "log_flux_t-3h", "log_flux_t-24h", "ULF_Power"
+    ]
+    
+    data_matrix = df[feature_cols].values.astype(np.float32)
+    
+    # 2. Scale features (excluding target at index 0)
+    mean = np.mean(data_matrix, axis=0, keepdims=True)
+    std = np.std(data_matrix, axis=0, keepdims=True) + 1e-7
+    mean[:, 0] = 0.0
+    std[:, 0] = 1.0
+    norm_data = (data_matrix - mean) / std
+    
+    seq_len, pred_len = 288, 144
+    X_samples, y_samples = [], []
+    for i in range(0, len(norm_data) - seq_len - pred_len, 36): # Stride = 3 hours
+        X_samples.append(norm_data[i : i + seq_len])
+        y_samples.append(data_matrix[i + seq_len : i + seq_len + pred_len, 0])
+        
     X_tensor = torch.tensor(np.array(X_samples), dtype=torch.float32)
     y_tensor = torch.tensor(np.array(y_samples), dtype=torch.float32)
-    w_tensor = torch.tensor(np.array(weights_samples), dtype=torch.float32)
+    
+    # 3. Build 10-feature model and inject 9-feature 11-year weights
+    print("[KAVACH-FINETUNE] Instantiating 10-feature TFT model...")
+    model = build_tft(num_features=10, num_quantiles=5)
+    
+    base_weights_path = r"kavach\weights\tft_model_11yr.pth"
+    if os.path.exists(base_weights_path):
+        print("[KAVACH-FINETUNE] Intercepting 11-year weights for Transfer Learning...")
+        state_dict = torch.load(base_weights_path, map_location='cpu')
+        
+        # Filter out vsn_weights due to shape mismatch (9x9 vs 10x10)
+        state_dict = {k: v for k, v in state_dict.items() if 'vsn_weights' not in k}
+        
+        # Load the compatible layers (strict=False ignores the missing vsn.9 and vsn_weights)
+        missing, unexpected = model.load_state_dict(state_dict, strict=False)
+        print(f"[KAVACH-FINETUNE] Loaded shared weights. Randomly initializing: {missing}")
+    else:
+        print("[KAVACH-FINETUNE] Warning: Base 11-year weights not found. Training from scratch.")
 
-    model = build_tft()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    criterion = PinballLoss()
-
-    model.train()
-    batch_size = 16
+    # 4. Rapid Fine-Tuning Pass
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    criterion = PhysicsInformedPinballLoss(quantiles=[0.1, 0.25, 0.5, 0.75, 0.9], lambda_physics=0.15)
+    
+    epochs, batch_size = 3, 16
     n_samples = len(X_tensor)
-
-    print(f"Starting training over {n_samples} samples for {epochs} epochs...")
+    model.train()
+    
+    print(f"[KAVACH-FINETUNE] Commencing fine-tuning over {n_samples} sequences...")
     for epoch in range(epochs):
         epoch_loss = 0.0
         indices = torch.randperm(n_samples)
-        
         for b in range(0, n_samples, batch_size):
             batch_idx = indices[b : b + batch_size]
-            bx = X_tensor[batch_idx]
-            by = y_tensor[batch_idx]
-            bw = w_tensor[batch_idx]
-
             optimizer.zero_grad()
-            q_preds, _ = model(bx)
-            
-            # Weighted loss
-            loss = criterion(q_preds, by) * bw.mean()
+            q_preds, _ = model(X_tensor[batch_idx])
+            loss = criterion(q_preds, y_tensor[batch_idx])
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
-
-            epoch_loss += loss.item()
-
-        print(f"Epoch {epoch+1}/{epochs} - Loss: {epoch_loss / (n_samples/batch_size):.4f}")
-
-    # Save model weights and scaler
-    model_path = os.path.join(save_dir, 'kavach_tft_v1.pt')
-    scaler_path = os.path.join(save_dir, 'scaler.pkl')
-
-    torch.save(model.state_dict(), model_path)
-    save_scaler(scaler, scaler_path)
-    print(f"Model successfully saved to {model_path} and {scaler_path}")
-    return model, scaler
+            epoch_loss += loss.item() * len(batch_idx)
+            
+        print(f"Epoch {epoch+1}/{epochs} | Loss: {epoch_loss / n_samples:.4f}")
+        
+    save_path = r"kavach\weights\finetuned_gsat19_grasp_ulf.pth"
+    torch.save(model.state_dict(), save_path)
+    joblib.dump({'mean': mean, 'std': std}, r"kavach\weights\scaler.pkl")
+    print(f"[KAVACH-FINETUNE] Successfully deployed fine-tuned weights to: {save_path}")
 
 if __name__ == '__main__':
-    train_kavach_model()
+    train_finetune()
