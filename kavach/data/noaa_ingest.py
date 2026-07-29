@@ -104,7 +104,12 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
             
         dst   = -10 - 15*(kp/3.0)**1.5  # Mathematical fallback (Live Kyoto API usually requires auth)
         ae    = 100 + 120*(kp/2.0)
-        ulf   = -3.5 + 0.4*(kp/3.0)     # Mathematical fallback (Live Ground Mags require separate API)
+        
+        # Real-time ULF Power Proxy: Pc5 waves are 150-600s period. 
+        # A 30-min (6 steps of 5min) rolling variance of Bz captures this energy!
+        bz_series = pd.Series(bz)
+        bz_var = bz_series.rolling(window=6, min_periods=1).var().fillna(0.1)
+        ulf = (np.log10(bz_var + 1e-4) - 3.5).values
         
         # Incorporate Real GOES Flux with fallback for missing values
         fallback_log_flux = pd.Series(2.3 + 0.005*(vsw-400) + 0.3*(kp-2)).ewm(span=18).mean().values

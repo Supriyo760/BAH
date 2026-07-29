@@ -169,23 +169,25 @@ def run_tft_inference(model, scaler, df):
         return None
     try:
         import torch
-        df['log_electron_flux'] = df.get('log_flux', 0.0)
-        df['Flow_Speed'] = df.get('Vsw', 0.0)
-        df['Bz_GSM'] = df.get('BZ_GSM', 0.0)
-        df['Proton_Density'] = df.get('Np', 0.0)
-        df['Temperature'] = 100000.0
-        df['Flow_Pressure'] = df.get('Pdyn', 0.0)
-        df['log_flux_t-1h'] = df.get('flux_lag_1h', 0.0)
-        df['log_flux_t-3h'] = df.get('flux_lag_3h', 0.0)
-        df['log_flux_t-24h'] = df.get('flux_lag_24h', 0.0)
-        df['ULF_Power'] = df.get('ULF_power', 0.0)
+        # FIX #3: Copy the dataframe so we do not mutate the global state in Replay mode
+        df_copy = df.copy()
+        df_copy['log_electron_flux'] = df_copy.get('log_flux', 0.0)
+        df_copy['Flow_Speed'] = df_copy.get('Vsw', 0.0)
+        df_copy['Bz_GSM'] = df_copy.get('BZ_GSM', 0.0)
+        df_copy['Proton_Density'] = df_copy.get('Np', 0.0)
+        df_copy['Temperature'] = 100000.0
+        df_copy['Flow_Pressure'] = df_copy.get('Pdyn', 0.0)
+        df_copy['log_flux_t-1h'] = df_copy.get('flux_lag_1h', 0.0)
+        df_copy['log_flux_t-3h'] = df_copy.get('flux_lag_3h', 0.0)
+        df_copy['log_flux_t-24h'] = df_copy.get('flux_lag_24h', 0.0)
+        df_copy['ULF_Power'] = df_copy.get('ULF_power', 0.0)
 
         feature_cols = [
             "log_electron_flux", "Flow_Speed", "Bz_GSM", "Proton_Density", "Temperature", "Flow_Pressure",
             "log_flux_t-1h", "log_flux_t-3h", "log_flux_t-24h", "ULF_Power"
         ]
         
-        data_matrix = df[feature_cols].tail(288).values.astype(np.float32)
+        data_matrix = df_copy[feature_cols].tail(288).values.astype(np.float32)
         if len(data_matrix) < 288:
             pad = np.tile(data_matrix[0:1], (288 - len(data_matrix), 1))
             data_matrix = np.vstack([pad, data_matrix])
@@ -206,7 +208,11 @@ def run_tft_inference(model, scaler, df):
             attn_scores = torch.softmax(model.vsn_weights(x_tensor.mean(dim=1)), dim=-1).squeeze(0).cpu().numpy()
             
         return q_preds.squeeze(0).cpu().numpy(), attn_scores
-    except Exception:
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        import streamlit as st
+        st.sidebar.error(f"TFT Engine Error: {str(e)}")
         return None, None
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
