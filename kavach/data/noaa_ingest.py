@@ -140,7 +140,8 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         for lag, lbl in [(12,"1h"),(36,"3h"),(72,"6h"),(144,"12h"),(288,"24h")]:
             df[f"flux_lag_{lbl}"] = df["log_flux"].shift(lag)
             
-        return df.bfill().fillna(0), "LIVE_NOAA_SWPC"
+        baseline_flux = df["log_flux"].iloc[0] if len(df) > 0 else 2.0
+        return df.bfill().fillna(baseline_flux), "LIVE_NOAA_SWPC"
         
     except Exception as e:
         # Fallback to local data stream if network restricted

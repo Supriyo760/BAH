@@ -176,15 +176,26 @@ def run_tft_inference(model, scaler, df):
         # FIX #3: Copy the dataframe so we do not mutate the global state in Replay mode
         df_copy = df.copy()
         df_copy['log_electron_flux'] = df_copy.get('log_flux', 0.0)
-        df_copy['Flow_Speed'] = df_copy.get('Vsw', 0.0)
+        df_copy['Flow_Speed'] = df_copy.get('Vsw', 400.0)
         df_copy['Bz_GSM'] = df_copy.get('BZ_GSM', 0.0)
-        df_copy['Proton_Density'] = df_copy.get('Np', 0.0)
+        df_copy['Proton_Density'] = df_copy.get('Np', 5.0)
         df_copy['Temperature'] = 100000.0
-        df_copy['Flow_Pressure'] = df_copy.get('Pdyn', 0.0)
-        df_copy['log_flux_t-1h'] = df_copy.get('flux_lag_1h', 0.0)
-        df_copy['log_flux_t-3h'] = df_copy.get('flux_lag_3h', 0.0)
-        df_copy['log_flux_t-24h'] = df_copy.get('flux_lag_24h', 0.0)
-        df_copy['ULF_Power'] = df_copy.get('ULF_power', 0.0)
+        df_copy['Flow_Pressure'] = df_copy.get('Pdyn', 2.0)
+        df_copy['ULF_Power'] = df_copy.get('ULF_power', -3.0)
+        
+        # FIX: Compute missing lags dynamically if not present, and fill NaNs safely with baseline
+        baseline = df_copy['log_electron_flux'].iloc[0] if len(df_copy) > 0 else 2.0
+        
+        if 'flux_lag_1h' not in df_copy.columns or (df_copy['flux_lag_1h'] == 0).all():
+            df_copy['flux_lag_1h'] = df_copy['log_electron_flux'].shift(12)
+        if 'flux_lag_3h' not in df_copy.columns or (df_copy['flux_lag_3h'] == 0).all():
+            df_copy['flux_lag_3h'] = df_copy['log_electron_flux'].shift(36)
+        if 'flux_lag_24h' not in df_copy.columns or (df_copy['flux_lag_24h'] == 0).all():
+            df_copy['flux_lag_24h'] = df_copy['log_electron_flux'].shift(288)
+            
+        df_copy['log_flux_t-1h'] = df_copy['flux_lag_1h'].bfill().fillna(baseline)
+        df_copy['log_flux_t-3h'] = df_copy['flux_lag_3h'].bfill().fillna(baseline)
+        df_copy['log_flux_t-24h'] = df_copy['flux_lag_24h'].bfill().fillna(baseline)
 
         feature_cols = [
             "log_electron_flux", "Flow_Speed", "Bz_GSM", "Proton_Density", "Temperature", "Flow_Pressure",
