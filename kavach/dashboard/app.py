@@ -75,7 +75,32 @@ def generate_storm(name, seed):
         "March 2015 Storm": "2015-03-17 23:55:00",
         "August 2018 Minor Storm": "2018-08-26 23:55:00"
     }
-    return generate_data(days=dur, seed=seed, end_time=end_times.get(name))
+    end_t = end_times.get(name)
+    
+    # Try to load real data from the 11-year dataset!
+    try:
+        csv_path = os.path.join(ROOT_DIR, "Kaggle_PreTraining_Dataset.csv")
+        if os.path.exists(csv_path):
+            df_real = pd.read_csv(csv_path, parse_dates=['datetime'], index_col='datetime')
+            end_dt = pd.to_datetime(end_t, utc=True)
+            start_dt = end_dt - pd.Timedelta(days=dur)
+            # Ensure the dataset has data for this storm (e.g. 2003 might not be in 2013-2023 dataset)
+            df_storm = df_real.loc[start_dt:end_dt].copy()
+            if len(df_storm) > 100:
+                # Rename columns to match what the UI expects
+                rename_map = {
+                    "Flow_Speed": "Vsw", "Proton_Density": "Np", "Flow_Pressure": "Pdyn",
+                    "log_electron_flux": "log_flux", "electron_flux": "flux"
+                }
+                df_storm.rename(columns=rename_map, inplace=True)
+                # Fill missing UI features with zeros for display safety
+                for c in ["BY_GSM", "BT", "KP", "DST", "AE", "ULF_power", "Ec", "Bz_neg_dur", "dDst_dt", "AE_1h", "regime"]:
+                    if c not in df_storm.columns: df_storm[c] = 0.0
+                return df_storm.bfill().fillna(0)
+    except Exception as e:
+        pass
+        
+    return generate_data(days=dur, seed=seed, end_time=end_t)
 
 # ─── Physics & Ensemble ───────────────────────────────────────────────────────
 def physics_forecast(log_flux, kp):
