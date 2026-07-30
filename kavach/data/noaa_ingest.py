@@ -94,7 +94,8 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         
         bt    = np.sqrt(by**2 + bz**2)
         theta = np.arctan2(by, bz)
-        ec    = np.clip((vsw**(4/3))*((bt*np.abs(np.sin(theta/2)))**(8/3)), 0, None)
+        # Kan-Lee Electric Field (mV/m) instead of Newell Coupling
+        ec    = np.clip(vsw * bt * (np.sin(theta/2)**2) * 1e-3, 0, None)
         pdyn  = np.clip(0.5*1.67e-27*(np_d*1e6)*((vsw*1e3)**2)*1e9, 0.1, 50.0)
         
         if live_kp_val is not None:
@@ -117,6 +118,8 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         
         if "flux" in df_merged.columns:
             flux_series = pd.to_numeric(df_merged["flux"], errors="coerce")
+            # Forward-fill real data first to prevent massive discontinuity cliffs if live stream drops
+            flux_series = flux_series.ffill().bfill()
             flux = flux_series.fillna(pd.Series(fallback_flux, index=dates)).values
         else:
             flux = fallback_flux

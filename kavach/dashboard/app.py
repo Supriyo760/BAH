@@ -46,7 +46,7 @@ def generate_data(days=7, seed=42, end_time=None):
     flux = np.clip(10**log_flux, 0.1, None)
     bt   = np.sqrt(by**2 + bz**2)
     theta = np.arctan2(by, bz)
-    ec   = np.clip((vsw**(4/3))*((bt*np.abs(np.sin(theta/2)))**(8/3)), 0, None)
+    ec   = np.clip(vsw * bt * (np.sin(theta/2)**2) * 1e-3, 0, None)
     pdyn = np.clip(0.5*1.67e-27*(np_d*1e6)*((vsw*1e3)**2)*1e9, 0.1, 50.0)
     bz_neg = pd.Series((bz < 0).astype(int))
     bz_neg_dur = bz_neg.groupby((bz_neg != bz_neg.shift()).cumsum()).cumcount().values * 5.0
