@@ -10,9 +10,10 @@ import joblib
 from sklearn.preprocessing import StandardScaler
 from kavach.models.tft_model import build_tft, PhysicsInformedPinballLoss
 
-def train_finetune():
+import argparse
+
+def train_finetune(data_path=r"DataSets\Kaggle_FineTuning_Dataset.csv"):
     print("[KAVACH-FINETUNE] Initiating Transfer Learning Pipeline...")
-    data_path = r"DataSets\Kaggle_FineTuning_Dataset.csv"
     if not os.path.exists(data_path):
         print(f"Error: Dataset {data_path} not found.")
         return
@@ -108,5 +109,9 @@ def train_finetune():
     joblib.dump({'mean': mean, 'std': std}, r"kavach\weights\scaler.pkl")
     print(f"[KAVACH-FINETUNE] Successfully deployed fine-tuned weights to: {save_path}")
 
-if __name__ == '__main__':
-    train_finetune()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Fine-tune KAVACH TFT on 2017 Dataset")
+    parser.add_argument("--data", type=str, default=r"DataSets\Kaggle_FineTuning_Dataset.csv", help="Input dataset path")
+    args = parser.parse_args()
+    
+    train_finetune(args.data)
