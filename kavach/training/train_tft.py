@@ -29,8 +29,7 @@ def train_finetune():
     df['Temperature'] = 100000.0 # Placeholder, missing in GRASP dataset
     df['Flow_Pressure'] = 0.5 * 1.67e-27 * (df['Density']*1e6) * (df['V']*1e3)**2 * 1e9
     
-    if 'ULF_Power' not in df.columns:
-        df['ULF_Power'] = -3.5 # Baseline ULF power proxy
+    # df['ULF_Power'] = -3.5 # (Proxy removed, data now contains true ULF power)
 
     
     df['log_flux_t-1h'] = df['log_electron_flux'].shift(12)

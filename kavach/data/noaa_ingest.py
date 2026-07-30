@@ -11,6 +11,7 @@ from datetime import datetime
 NOAA_PLASMA_URL = "https://services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json"
 NOAA_MAG_URL    = "https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json"
 NOAA_GOES_URL   = "https://services.swpc.noaa.gov/json/goes/primary/integral-electrons-1-day.json"
+NOAA_GOES_MAG_URL = "https://services.swpc.noaa.gov/json/goes/primary/magnetometers-1-day.json"
 NOAA_KP_URL     = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
 
 def fetch_live_noaa_telemetry(timeout_sec: int = 5):
@@ -51,7 +52,17 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
                 df_goes = pd.DataFrame([d for d in r_goes if d.get('energy') == '>=2 MeV'])
         except Exception:
             pass
-        
+            
+        # Try fetching real GOES Magnetometer
+        df_goes_mag = None
+        try:
+            resp_gm = requests.get(NOAA_GOES_MAG_URL, headers=headers, timeout=timeout_sec)
+            if resp_gm.status_code == 200 and (resp_gm.text.strip().startswith("[") or resp_gm.text.strip().startswith("{")):
+                r_goes_mag = resp_gm.json()
+                df_goes_mag = pd.DataFrame(r_goes_mag)
+        except Exception:
+            pass
+
         # Try fetching official planetary Kp index feed
         live_kp_val = None
         try:
@@ -77,6 +88,14 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
             df_goes.set_index("time_tag", inplace=True)
             df_goes = df_goes.resample("5min").mean(numeric_only=True)
             df_merged = df_merged.join(df_goes, how="left")
+            
+        if df_goes_mag is not None and not df_goes_mag.empty:
+            df_goes_mag["time_tag"] = pd.to_datetime(df_goes_mag["time_tag"], utc=True)
+            df_goes_mag.set_index("time_tag", inplace=True)
+            df_goes_mag = df_goes_mag.resample("5min").mean(numeric_only=True)
+            # Prefix columns to avoid collisions
+            df_goes_mag = df_goes_mag.add_prefix("goes_")
+            df_merged = df_merged.join(df_goes_mag, how="left")
         
         # Extract features (handling both RTSW and DSCOVR field names)
         vsw_raw = df_merged.get("proton_speed", df_merged.get("speed", 400.0))
@@ -106,11 +125,18 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         dst   = -10 - 15*(kp/3.0)**1.5  # Mathematical fallback (Live Kyoto API usually requires auth)
         ae    = 100 + 120*(kp/2.0)
         
-        # Real-time ULF Power Proxy: Pc5 waves are 150-600s period. 
-        # A 30-min (6 steps of 5min) rolling variance of Bz captures this energy!
-        bz_series = pd.Series(bz)
-        bz_var = bz_series.rolling(window=6, min_periods=1).var().fillna(0.1)
-        ulf = (np.log10(bz_var + 1e-4) - 3.5).values
+        # Real-time ULF Power Proxy
+        # If GOES Magnetometer (Hp) is available, use it. Otherwise, fallback to Solar Wind Bz.
+        # Pc5 waves are 150-600s period. A 30-min (6 steps of 5min) rolling variance captures this energy.
+        if "goes_Hp" in df_merged.columns and df_merged["goes_Hp"].notna().sum() > 5:
+            # Use GOES Magnetometer (Geosynchronous orbit, perfect for radiation belt)
+            mag_series = df_merged["goes_Hp"].ffill().bfill()
+        else:
+            # Fallback to OMNI Solar Wind Proxy
+            mag_series = pd.Series(bz)
+            
+        mag_var = mag_series.rolling(window=6, min_periods=1).var().fillna(0.1)
+        ulf = (np.log10(mag_var + 1e-4) - 3.5).values
         
         # Incorporate Real GOES Flux with fallback for missing values
         fallback_log_flux = pd.Series(2.3 + 0.005*(vsw-400) + 0.3*(kp-2)).ewm(span=18).mean().values
