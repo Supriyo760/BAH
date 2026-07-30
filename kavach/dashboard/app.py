@@ -52,7 +52,12 @@ def generate_data(days=7, seed=42, end_time=None):
     bz_neg_dur = bz_neg.groupby((bz_neg != bz_neg.shift()).cumsum()).cumcount().values * 5.0
     dDst = np.gradient(dst) / 5.0
     ae_1h = pd.Series(ae).rolling(12, min_periods=1).mean().values
-    regime = np.where(kp >= 6, 2, np.where(kp >= 3, 1, 0))
+    
+    regime = np.zeros(n)
+    regime[kp >= 6] = 2
+    regime[(kp >= 3) & (kp < 6)] = 1
+    regime[(dDst > 0) & (dst < -50)] = 3  # Recovery Phase
+    
     df = pd.DataFrame({
         "flux": flux, "log_flux": np.log10(np.maximum(flux, 1e-3)),
         "Vsw": vsw, "BZ_GSM": bz, "BY_GSM": by, "BT": bt,
@@ -311,8 +316,8 @@ regime   = int(row["regime"])
 tft_res = run_tft_inference(tft_model_instance, tft_scaler_instance, df)
 phys = physics_forecast(log_flux, kp)
 
-tft_quantiles = tft_res[0] if tft_res is not None else None
-tft_attn = tft_res[1] if tft_res is not None else None
+tft_quantiles = tft_res[0] if tft_res[0] is not None else None
+tft_attn = tft_res[1] if tft_res[0] is not None else None
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
     # Use PyTorch TFT model output directly: [P10, P25, P50, P75, P90]

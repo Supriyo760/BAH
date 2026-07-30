@@ -127,7 +127,12 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         bz_neg_dur = bz_neg.groupby((bz_neg != bz_neg.shift()).cumsum()).cumcount().values * 5.0
         dDst       = np.gradient(dst) / 5.0
         ae_1h      = pd.Series(ae).rolling(12, min_periods=1).mean().values
-        regime     = np.where(kp >= 6, 2, np.where(kp >= 3, 1, 0))
+        
+        regime = np.zeros(n)
+        regime[kp >= 6] = 2
+        regime[(kp >= 3) & (kp < 6)] = 1
+        regime[(dDst > 0) & (dst < -50)] = 3  # Recovery Phase
+
         
         df = pd.DataFrame({
             "flux": flux, "log_flux": log_flux,
