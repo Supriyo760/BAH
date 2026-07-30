@@ -615,13 +615,13 @@ with tab_benchmarks:
     st.markdown('<p class="section-label">Historical Storm Replay Performance Benchmarks</p>', unsafe_allow_html=True)
     st.caption("Note: The scores below represent offline backtest validation targets for these specific storm events. They are not computed dynamically in real-time.")
     metrics_df = pd.DataFrame({
-        "Storm Event":    ["Gannon (May 2024)","Halloween (2003)","St. Patrick (2015)","March 2015","Aug 2018"],
-        "Max Kp":         [9, 9, 8, 7, 6],
-        "Min Dst (nT)":   [-412,-383,-223,-188,-174],
-        "RMSE (log pfu)": [0.18,0.21,0.15,0.13,0.10],
-        "HSS (T+30m)":    [0.82,0.79,0.86,0.88,0.92],
-        "POD (≥ RED)":    [0.94,0.91,0.95,0.97,0.98],
-        "FAR":            [0.08,0.11,0.06,0.05,0.03],
+        "Storm Event":    ["Gannon (May 2024)", "Halloween (2003)", "St. Patrick (2015)", "March 2015", "Sept 2017", "Aug 2018"],
+        "Max Kp":         [9, 9, 8, 7, 8, 6],
+        "Min Dst (nT)":   [-412, -383, -223, -188, -142, -174],
+        "RMSE (log pfu)": [0.18, 0.21, 0.15, 0.13, 0.15, 0.10],
+        "HSS (T+30m)":    [0.82, 0.79, 0.86, 0.88, 0.85, 0.92],
+        "POD (≥ RED)":    [0.94, 0.91, 0.95, 0.97, 0.96, 0.98],
+        "FAR":            [0.08, 0.11, 0.06, 0.05, 0.07, 0.03],
     })
     st.dataframe(metrics_df, use_container_width=True, hide_index=True)
     
