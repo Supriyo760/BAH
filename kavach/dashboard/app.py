@@ -279,9 +279,14 @@ else: # Live Operations Simulation
 
 if mode != "Historical Storm Replay":
     if st.sidebar.checkbox("LIVE AUTO-REFRESH (15s)", value=False, help="Automatically polls NOAA SWPC and updates telemetry & UTC clock every 15 seconds."):
-        import time
-        time.sleep(15)
-        st.rerun()
+        try:
+            from streamlit_autorefresh import st_autorefresh
+            st_autorefresh(interval=15000, limit=None, key="kavach_autorefresh")
+        except ImportError:
+            # Graceful fallback if streamlit-autorefresh is not installed
+            import time
+            time.sleep(15)
+            st.rerun()
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("""<p style="font-family:'Space Mono',monospace;font-size:0.62rem;
