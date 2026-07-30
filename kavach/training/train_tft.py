@@ -104,9 +104,10 @@ def train_finetune(data_path=r"DataSets\Kaggle_FineTuning_Dataset.csv"):
             
         print(f"Epoch {epoch+1}/{epochs} | Loss: {epoch_loss / n_samples:.4f}")
         
-    save_path = r"kavach\weights\finetuned_gsat19_grasp_ulf.pth"
+    os.makedirs("kavach/weights", exist_ok=True)
+    save_path = "kavach/weights/finetuned_gsat19_grasp_ulf.pth"
     torch.save(model.state_dict(), save_path)
-    joblib.dump({'mean': mean, 'std': std}, r"kavach\weights\scaler.pkl")
+    joblib.dump({'mean': mean, 'std': std}, "kavach/weights/scaler.pkl")
     print(f"[KAVACH-FINETUNE] Successfully deployed fine-tuned weights to: {save_path}")
 
 if __name__ == "__main__":
