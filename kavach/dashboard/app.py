@@ -112,7 +112,7 @@ from kavach.models.radial_diff import run_physics_forecast as physics_forecast
 from kavach.models.ensemble import ensemble_forecast as ensemble
 from kavach.models.ensemble import classify_risk as risk_level
 
-REGIME_LABELS = {0:"QUIET  (Kp < 3)", 1:"MODERATE  (Kp 3–6)", 2:"STORM  (Kp ≥ 6)"}
+REGIME_LABELS = {0:"QUIET  (Kp < 3)", 1:"MODERATE  (Kp 3–6)", 2:"STORM  (Kp ≥ 6)", 3:"RECOVERY  (Post-Storm)"}
 STORM_SEEDS = {"Gannon Storm (May 2024)":7,"Halloween Storm (2003)":31,
                "St. Patrick's Day Storm (2015)":15,"March 2015 Storm":20,
                "August 2018 Minor Storm":8}
