@@ -642,13 +642,16 @@ with tab_benchmarks:
             else:
                 val_df = val_df.loc['2018-08-25':'2018-08-27']
         
+        # Handle different column names between datasets ('electron_flux' vs 'Electron_Flux')
+        flux_col = 'Electron_Flux' if 'Electron_Flux' in val_df.columns else 'electron_flux'
+        
         # Simulate the TFT validation output based on our model's RMSE
-        log_true = np.log10(np.maximum(val_df['Electron_Flux'], 1e-3))
+        log_true = np.log10(np.maximum(val_df[flux_col], 1e-3))
         log_pred = log_true.rolling(4, min_periods=1).mean() * 0.95 + 0.1
         val_df['Predicted_Flux'] = 10**log_pred
         
         fig_val = go.Figure()
-        fig_val.add_trace(go.Scatter(x=val_df.index, y=val_df['Electron_Flux'], name="Observed (GOES)", line=dict(color="#4FC3F7", width=1.5)))
+        fig_val.add_trace(go.Scatter(x=val_df.index, y=val_df[flux_col], name="Observed (GOES)", line=dict(color="#4FC3F7", width=1.5)))
         fig_val.add_trace(go.Scatter(x=val_df.index, y=val_df['Predicted_Flux'], name="TFT Predicted (P50)", line=dict(color="#FFB74D", width=1.5, dash='dot')))
         
         fig_val.update_layout(
