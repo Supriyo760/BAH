@@ -150,13 +150,15 @@ STORM_META = {
     "August 2018 Storm":              {"min_dst":-174,"max_kp":6,"desc":"G2 moderate storm. GSAT-19 GRASP baseline validation event. Real GOES-16 + ATHA ULF data."},
 }
 
-WEIGHTS_VERSION = "v5"  # bump to bust Streamlit @cache_resource
+WEIGHTS_VERSION = "v6"  # bump to bust Streamlit @cache_resource
 
 @st.cache_resource
 def load_kavach_model(_version=WEIGHTS_VERSION):
-    """Loads the PyTorch TFT weights. Scaler is not used — normalization matches train_tft.py."""
+    """Loads the PyTorch TFT weights and the global feature scaler."""
     weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'finetuned_gsat19_grasp_ulf.pth'))
+    scaler_path  = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler.pkl'))
     model = None
+    scaler = None
     if os.path.exists(weights_path):
         try:
             import torch
@@ -166,7 +168,15 @@ def load_kavach_model(_version=WEIGHTS_VERSION):
             model.eval()
         except Exception:
             model = None
-    return model, None   # scaler=None — we use in-batch normalization like training
+            
+    if os.path.exists(scaler_path):
+        try:
+            import joblib
+            scaler = joblib.load(scaler_path)
+        except Exception:
+            scaler = None
+            
+    return model, scaler
 
 tft_model_instance, tft_scaler_instance = load_kavach_model(WEIGHTS_VERSION)
 
@@ -213,13 +223,16 @@ def run_tft_inference(model, scaler, df):
             pad = np.tile(data_matrix[0:1], (288 - len(data_matrix), 1))
             data_matrix = np.vstack([pad, data_matrix])
             
-        # ── Normalize EXACTLY as in train_tft.py (per-batch statistics, not saved scaler) ──
-        mean = np.mean(data_matrix, axis=0, keepdims=True)
-        std  = np.std(data_matrix,  axis=0, keepdims=True) + 1e-7
-        # Do NOT normalize the log_flux target column itself — keep it raw for loss computation
-        mean[:, 0] = 0.0
-        std[:, 0]  = 1.0
-        norm_x = (data_matrix - mean) / std
+        if scaler is not None and isinstance(scaler, dict) and 'mean' in scaler and 'std' in scaler:
+            norm_x = (data_matrix - scaler['mean']) / scaler['std']
+        else:
+            # Fallback only
+            mean = np.mean(data_matrix, axis=0, keepdims=True)
+            std  = np.std(data_matrix,  axis=0, keepdims=True) + 1e-7
+            mean[:, 0] = 0.0
+            std[:, 0]  = 1.0
+            norm_x = (data_matrix - mean) / std
+            
         x_tensor = torch.tensor(norm_x, dtype=torch.float32).unsqueeze(0)
 
         with torch.no_grad():
