@@ -505,7 +505,7 @@ if r30m in ["RED", "YELLOW"] or r6h in ["RED", "YELLOW"]:
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
 # ─── Forecast Vectors Computation ─────────────────────────────────────────────
-hist_n = min(len(df), 150)
+hist_n = min(len(df), 2016 if "Live" in mode else 288)
 t_hist = df.index[-hist_n:]
 f_hist = df["flux"].values[-hist_n:]
 last_t = t_hist[-1]

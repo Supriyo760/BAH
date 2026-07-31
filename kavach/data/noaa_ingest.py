@@ -10,8 +10,8 @@ from datetime import datetime
 
 NOAA_PLASMA_URL = "https://services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json"
 NOAA_MAG_URL    = "https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json"
-NOAA_GOES_URL   = "https://services.swpc.noaa.gov/json/goes/primary/integral-electrons-1-day.json"
-NOAA_GOES_MAG_URL = "https://services.swpc.noaa.gov/json/goes/primary/magnetometers-1-day.json"
+NOAA_GOES_URL   = "https://services.swpc.noaa.gov/json/goes/primary/integral-electrons-7-day.json"
+NOAA_GOES_MAG_URL = "https://services.swpc.noaa.gov/json/goes/primary/magnetometers-7-day.json"
 NOAA_KP_URL     = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
 
 def fetch_live_noaa_telemetry(timeout_sec: int = 5):
@@ -87,7 +87,7 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
             df_goes["time_tag"] = pd.to_datetime(df_goes["time_tag"], utc=True)
             df_goes.set_index("time_tag", inplace=True)
             df_goes = df_goes.resample("5min").mean(numeric_only=True)
-            df_merged = df_merged.join(df_goes, how="left")
+            df_merged = df_merged.join(df_goes, how="outer")
             
         if df_goes_mag is not None and not df_goes_mag.empty:
             df_goes_mag["time_tag"] = pd.to_datetime(df_goes_mag["time_tag"], utc=True)
@@ -95,13 +95,16 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
             df_goes_mag = df_goes_mag.resample("5min").mean(numeric_only=True)
             # Prefix columns to avoid collisions
             df_goes_mag = df_goes_mag.add_prefix("goes_")
-            df_merged = df_merged.join(df_goes_mag, how="left")
+            df_merged = df_merged.join(df_goes_mag, how="outer")
         
         # Extract features (handling both RTSW and DSCOVR field names)
-        vsw_raw = df_merged.get("proton_speed", df_merged.get("speed", 400.0))
-        bz_raw  = df_merged.get("bz_gsm", 0.0)
-        by_raw  = df_merged.get("by_gsm", 0.0)
-        np_raw  = df_merged.get("proton_density", df_merged.get("density", 5.0))
+        df_out = pd.DataFrame(index=df_merged.index)
+        
+        # Use fallback series and fillna to handle the outer join (missing RTSW data in the older 4 days)
+        vsw_raw = df_merged.get("proton_speed", df_merged.get("speed", pd.Series(400.0, index=df_merged.index)))
+        bz_raw  = df_merged.get("bz_gsm", pd.Series(0.0, index=df_merged.index))
+        by_raw  = df_merged.get("by_gsm", pd.Series(0.0, index=df_merged.index))
+        np_raw  = df_merged.get("proton_density", df_merged.get("density", pd.Series(5.0, index=df_merged.index)))
         
         vsw  = pd.to_numeric(vsw_raw, errors="coerce").fillna(400.0).values
         bz   = pd.to_numeric(bz_raw, errors="coerce").fillna(0.0).values
