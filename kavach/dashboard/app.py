@@ -150,34 +150,44 @@ STORM_META = {
     "August 2018 Storm":              {"min_dst":-174,"max_kp":6,"desc":"G2 moderate storm. GSAT-19 GRASP baseline validation event. Real GOES-16 + ATHA ULF data."},
 }
 
+WEIGHTS_VERSION = "v4"  # bump this string to bust Streamlit's @cache_resource
+
 @st.cache_resource
-def load_kavach_model():
+def load_kavach_model(_version=WEIGHTS_VERSION):
     weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'finetuned_gsat19_grasp_ulf.pth'))
-    scaler_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler.pkl'))
-    model = None
+    scaler_path  = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler.pkl'))
+    model  = None
     scaler = None
+
+    st.sidebar.markdown(f"**MODEL LOAD DEBUG:**")
+    st.sidebar.text(f"Weights path: ...{weights_path[-40:]}")
+    st.sidebar.text(f"Weights exist: {os.path.exists(weights_path)}")
+
     if os.path.exists(weights_path):
         try:
             import torch
             from kavach.models.tft_model import build_tft
             model = build_tft(num_features=10, num_quantiles=5)
-            model.load_state_dict(torch.load(weights_path, map_location="cpu"))
+            sd = torch.load(weights_path, map_location="cpu")
+            model.load_state_dict(sd)
             model.eval()
+            st.sidebar.success("PyTorch TFT loaded OK")
         except Exception as e:
-            import streamlit as st
-            st.error(f"Failed to load weights: {e}")
+            st.sidebar.error(f"Weight load error: {e}")
             model = None
+    else:
+        st.sidebar.error("Weight file NOT FOUND on server!")
+
     if os.path.exists(scaler_path):
         try:
             import joblib
             scaler = joblib.load(scaler_path)
+            st.sidebar.success("Scaler loaded OK")
         except Exception as e:
-            import streamlit as st
-            st.error(f"Failed to load scaler: {e}")
-            scaler = None
+            st.sidebar.error(f"Scaler load error: {e}")
     return model, scaler
 
-tft_model_instance, tft_scaler_instance = load_kavach_model()
+tft_model_instance, tft_scaler_instance = load_kavach_model(WEIGHTS_VERSION)
 
 def run_tft_inference(model, scaler, df):
     """
@@ -388,6 +398,9 @@ st.markdown("""
 <p class="nasa-subtitle">ISRO BHARATIYA ANTARIKSH HACKATHON 2026 &nbsp;|&nbsp; TEAM DIGIINDIA &nbsp;|&nbsp; PS-14</p>
 <p class="nasa-title" style="margin-bottom:6px"><span>KAVACH</span> — GEO Radiation Monitor</p>
 """, unsafe_allow_html=True)
+
+if tft_model_instance is None:
+    st.error("🚨 **CRITICAL SYSTEM ALERT**: PyTorch AI Engine is OFFLINE! Unable to load the neural network weights from memory. The system is currently running in 'Fallback UI Simulation Mode' mathematically estimating the prediction. **To fix this: Reboot the Streamlit App or Clear Cache.**")
 
 if mode == "Historical Storm Replay":
     st.markdown(f"""<p class="nasa-subtitle" style="margin-top:0">HISTORICAL REPLAY: {storm_name.upper()} &nbsp;|&nbsp; <span style="color:#00E5FF;font-weight:700">REPLAY TIMELINE: {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}</span></p>""", unsafe_allow_html=True)
