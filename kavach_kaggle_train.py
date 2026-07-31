@@ -103,16 +103,27 @@ PRETRAIN_PATH  = "/kaggle/input/kavach-isro-datasets/Kaggle_PreTraining_Dataset.
 FINETUNE_PATH  = "/kaggle/input/kavach-isro-datasets/Kaggle_FineTuning_Dataset.csv"
 VAL_PATH       = "/kaggle/input/kavach-isro-datasets/Kaggle_Validation_March2015.csv"
 
-# Fallback: check current directory
+# Fallback: check current directory, kaggle inputs, and cloned repo
+search_paths = [
+    "/kaggle/input",
+    "/kaggle/working/BAH/DataSets",
+    "./DataSets"
+]
+
 for attr, name in [("PRETRAIN_PATH", "Kaggle_PreTraining_Dataset.csv"),
                    ("FINETUNE_PATH", "Kaggle_FineTuning_Dataset.csv"),
                    ("VAL_PATH", "Kaggle_Validation_March2015.csv")]:
     if not os.path.exists(globals()[attr]):
-        for root, dirs, files in os.walk("/kaggle/input"):
-            for f in files:
-                if f == name:
-                    globals()[attr] = os.path.join(root, f)
-                    print(f"Found {name} at {globals()[attr]}")
+        found = False
+        for search_dir in search_paths:
+            if os.path.exists(search_dir):
+                for root, dirs, files in os.walk(search_dir):
+                    if name in files:
+                        globals()[attr] = os.path.join(root, name)
+                        print(f"Found {name} at {globals()[attr]}")
+                        found = True
+                        break
+            if found: break
 
 print(f"\nPre-train : {PRETRAIN_PATH} — exists: {os.path.exists(PRETRAIN_PATH)}")
 print(f"Fine-tune : {FINETUNE_PATH} — exists: {os.path.exists(FINETUNE_PATH)}")
