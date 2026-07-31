@@ -150,7 +150,7 @@ STORM_META = {
     "August 2018 Storm":              {"min_dst":-174,"max_kp":6,"desc":"G2 moderate storm. GSAT-19 GRASP baseline validation event. Real GOES-16 + ATHA ULF data."},
 }
 
-WEIGHTS_VERSION = "v6"  # bump to bust Streamlit @cache_resource
+WEIGHTS_VERSION = "v7"  # bump to bust Streamlit @cache_resource
 
 @st.cache_resource
 def load_kavach_model(_version=WEIGHTS_VERSION):
