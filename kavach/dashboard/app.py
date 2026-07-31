@@ -350,13 +350,13 @@ tft_quantiles = tft_res[0] if tft_res[0] is not None else None
 tft_attn = tft_res[1] if tft_res[0] is not None else None
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
-    # Use PyTorch TFT model output directly: [P10, P25, P50, P75, P90]
-    tft_f_P10 = tft_quantiles[:, 0]
-    tft_f_P50 = tft_quantiles[:, 2] # Median forecast
-    tft_f_P90 = tft_quantiles[:, 4]
-    ml_30m  = float(tft_f_P50[5])   # T+30m = index 5
-    ml_6h   = float(tft_f_P50[71])  # T+6h  = index 71
-    ml_12h  = float(tft_f_P50[143]) # T+12h = index 143
+    # Use tighter PyTorch TFT inner quantiles (P25 and P75) instead of P10/P90 which are visually too broad
+    tft_f_P10 = tft_quantiles[:, 1]  # P25
+    tft_f_P50 = tft_quantiles[:, 2]  # Median forecast
+    tft_f_P90 = tft_quantiles[:, 3]  # P75
+    ml_30m  = float(tft_f_P50[5])    # T+30m = index 5
+    ml_6h   = float(tft_f_P50[71])   # T+6h  = index 71
+    ml_12h  = float(tft_f_P50[143])  # T+12h = index 143
 else:
     # Base linear interpolation
     base_f = np.linspace(log_flux, phys["T+12h"], 144)
@@ -364,8 +364,8 @@ else:
     turbulence = 0.15 * np.sin(np.linspace(0, 3*np.pi, 144)) + np.random.normal(0, 0.04, 144)
     tft_f_P50 = base_f + turbulence
     
-    # Improve 90% quantile band to form a realistic 'cone of uncertainty' widening over time
-    uncertainty_cone = np.linspace(0.05, 0.45, 144)
+    # Improve 50% quantile band to form a realistic 'cone of uncertainty' widening over time
+    uncertainty_cone = np.linspace(0.02, 0.20, 144)  # narrowed for 50% band
     tft_f_P10 = tft_f_P50 - uncertainty_cone
     tft_f_P90 = tft_f_P50 + uncertainty_cone
     ml_30m  = log_flux + 0.06*(kp-2) + 0.12*(ulf+3.5)
@@ -482,7 +482,7 @@ def risk_card(col, horizon, tag, risk, fval, msg):
   <p class="risk-label" style="color:{RISK_COLORS[risk]}">
     [{RISK_PREFIX[risk]}] &nbsp; {horizon}</p>
   <p class="risk-value" style="color:{RISK_COLORS[risk]}">{10**fval:.2e} <span style="font-size:0.9rem">pfu</span></p>
-  <p class="risk-band">90% Band: [{10**(fval-0.25):.1e} – {10**(fval+0.25):.1e}] pfu</p>
+  <p class="risk-band">50% Band: [{10**(fval-0.25):.1e} – {10**(fval+0.25):.1e}] pfu</p>
   <p class="risk-msg">{risk} RISK — {msg}</p>
 </div>""", unsafe_allow_html=True)
 
@@ -558,7 +558,7 @@ fig.add_trace(go.Scatter(
     x=t_fut, y=10**tft_f_P10,
     fill="tonexty",
     fillcolor="rgba(255,167,38,0.08)",
-    name="90% Quantile Band",
+    name="50% Quantile Band",
     line=dict(color="rgba(255,167,38,0)", width=0)
 ))
 fig.add_hline(
