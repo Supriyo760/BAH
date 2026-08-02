@@ -14,6 +14,7 @@ if ROOT_DIR not in sys.path:
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 
 st.set_page_config(
@@ -623,6 +624,88 @@ fig.update_layout(
     height=420
 )
 st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
+
+# ─── Subsequent Parameters Multi-Graph ─────────────────────────────────────────
+st.markdown('<p class="section-label">Multiparameter Historical Solar Wind Driver State</p>', unsafe_allow_html=True)
+
+fig_params = make_subplots(
+    rows=5, cols=1, shared_xaxes=True,
+    vertical_spacing=0.04,
+    subplot_titles=(
+        "IMF Magnetic Field Vectors (nT)", 
+        "Solar Wind Kinematics", 
+        "Geomagnetic Indices", 
+        "Auroral & Solar Energy", 
+        "Energy Coupling & Wave Power"
+    )
+)
+
+# Set common font for subplot titles (they are annotations in Plotly)
+for annotation in fig_params['layout']['annotations']: 
+    annotation['font'] = dict(size=11, color="#3D7AB5", family="Space Mono")
+
+# R1: Magnetosphere
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["BZ_GSM"].values[-hist_n:], name="Bz (GSM)", line=dict(color="#FF5252", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("BY_GSM", pd.Series(0, index=df.index)).values[-hist_n:], name="By (GSM)", line=dict(color="#448AFF", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("BT", pd.Series(5, index=df.index)).values[-hist_n:], name="BT (Total)", line=dict(color="#E0E0E0", dash="dot", width=1.5)), row=1, col=1)
+
+# R2: Kinematics
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["Vsw"].values[-hist_n:], name="Speed (km/s)", line=dict(color="#69F0AE", width=1.5)), row=2, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["Np"].values[-hist_n:] * 10, name="Density (x10) (n/cc)", line=dict(color="#FFD740", dash="dash", width=1.5)), row=2, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("Pdyn", pd.Series(2, index=df.index)).values[-hist_n:] * 100, name="Pressure (x100) (nPa)", line=dict(color="#E040FB", width=1.5)), row=2, col=1)
+
+# R3: Geomagnetic
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["DST"].values[-hist_n:], name="Dst (nT)", line=dict(color="#FF4081", width=1.5)), row=3, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["KP"].values[-hist_n:] * 10, name="Kp (x10)", line=dict(color="#FFAB40", width=1.5)), row=3, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("dDst_dt", pd.Series(0, index=df.index)).values[-hist_n:], name="dDst/dt", line=dict(color="#B2EBF2", dash="dot", width=1.5)), row=3, col=1)
+
+# R4: Auroral & Solar
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("AE", pd.Series(100, index=df.index)).values[-hist_n:], name="AE (nT)", line=dict(color="#18FFFF", width=1.5)), row=4, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("F10.7_index", pd.Series(70, index=df.index)).values[-hist_n:], name="F10.7 (sfu)", line=dict(color="#FFFF00", width=1.5)), row=4, col=1)
+
+# R5: Coupling
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("Ec", pd.Series(0, index=df.index)).values[-hist_n:], name="Kan-Lee Ec (mV/m)", line=dict(color="#00E676", width=1.5)), row=5, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["ULF_power"].values[-hist_n:], name="ULF Log Power (nT²/Hz)", line=dict(color="#AA00FF", width=1.5)), row=5, col=1)
+
+fig_params.update_layout(
+    height=750,
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="#0B0D11",
+    font=dict(family="Inter, sans-serif", size=10, color="#8AB4D4"),
+    margin=dict(l=40, r=20, t=30, b=30),
+    showlegend=True,
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
+)
+
+for i in range(1, 6):
+    fig_params.update_yaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", zeroline=False, row=i, col=1)
+fig_params.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", row=5, col=1)
+
+st.plotly_chart(fig_params, use_container_width=True)
+
+st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
+
+# ─── GSAT-19 GRASP Placeholder ────────────────────────────────────────────────
+st.markdown('<p class="section-label">GSAT-19 GRASP Payload (48°E Indian Sector) Local Plasma Telemetry</p>', unsafe_allow_html=True)
+fig_grasp = go.Figure()
+fig_grasp.add_annotation(
+    x=0.5, y=0.5,
+    text="Awaiting ISRO ISSDC Secure API Authentication<br><span style='font-size:12px;color:#EF5350'>GRASP STREAM LOCKED</span>",
+    xref="paper", yref="paper",
+    showarrow=False,
+    font=dict(family="Space Mono", size=16, color="#B71C1C")
+)
+fig_grasp.update_layout(
+    height=180,
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="#0B0D11",
+    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
+    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
+    margin=dict(l=0, r=0, t=0, b=0)
+)
+st.plotly_chart(fig_grasp, use_container_width=True)
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
