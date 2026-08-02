@@ -102,11 +102,13 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         
         # Use fallback series and fillna to handle the outer join (missing RTSW data in the older 4 days)
         vsw_raw = df_merged.get("proton_speed", df_merged.get("speed", pd.Series(400.0, index=df_merged.index)))
+        bx_raw  = df_merged.get("bx_gsm", pd.Series(0.0, index=df_merged.index))
         bz_raw  = df_merged.get("bz_gsm", pd.Series(0.0, index=df_merged.index))
         by_raw  = df_merged.get("by_gsm", pd.Series(0.0, index=df_merged.index))
         np_raw  = df_merged.get("proton_density", df_merged.get("density", pd.Series(5.0, index=df_merged.index)))
         
         vsw  = pd.to_numeric(vsw_raw, errors="coerce").fillna(400.0).values
+        bx   = pd.to_numeric(bx_raw, errors="coerce").fillna(0.0).values
         bz   = pd.to_numeric(bz_raw, errors="coerce").fillna(0.0).values
         by   = pd.to_numeric(by_raw, errors="coerce").fillna(0.0).values
         np_d = pd.to_numeric(np_raw, errors="coerce").fillna(5.0).values
@@ -168,10 +170,10 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         
         df = pd.DataFrame({
             "flux": flux, "log_flux": log_flux,
-            "Vsw": vsw, "BZ_GSM": bz, "BY_GSM": by, "BT": bt,
+            "Vsw": vsw, "BX_GSM": bx, "BZ_GSM": bz, "BY_GSM": by, "BT": bt,
             "Np": np_d, "KP": kp, "DST": dst, "AE": ae, "ULF_power": ulf,
             "Ec": ec, "Pdyn": pdyn, "Bz_neg_dur": bz_neg_dur, "dDst_dt": dDst,
-            "AE_1h": ae_1h, "regime": regime.astype(float)
+            "AE_1h": ae_1h, "regime": regime.astype(float), "F10.7_index": 70.0
         }, index=dates)
         
         for lag, lbl in [(12,"1h"),(36,"3h"),(72,"6h"),(144,"12h"),(288,"24h")]:

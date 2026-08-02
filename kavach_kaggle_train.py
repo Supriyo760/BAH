@@ -58,8 +58,8 @@ class GatedResidualNetwork(nn.Module):
         return self.layer_norm(self.skip(x) + g * h)
 
 class KAVACH_TFT(nn.Module):
-    """10-feature TFT: seq_len=288 (24h) → 144-step (12h) quantile forecast."""
-    def __init__(self, num_features=10, hidden_size=128, lstm_layers=2, num_quantiles=5, dropout=0.1):
+    """25-feature TFT: seq_len=288 (24h) → 144-step (12h) quantile forecast."""
+    def __init__(self, num_features=25, hidden_size=128, lstm_layers=2, num_quantiles=5, dropout=0.1):
         super().__init__()
         self.num_features = num_features
         self.num_quantiles = num_quantiles
@@ -131,9 +131,11 @@ print(f"Validation: {VAL_PATH}      — exists: {os.path.exists(VAL_PATH)}")
 
 # ─── Cell 4: Feature Engineering ─────────────────────────────────────────────
 FEATURE_COLS = [
-    "log_electron_flux", "Flow_Speed", "Bz_GSM", "Proton_Density",
-    "Temperature", "Flow_Pressure",
-    "log_flux_t-1h", "log_flux_t-3h", "log_flux_t-24h", "ULF_Power"
+    "log_electron_flux", "Flow_Speed", "Bz_GSM", "Proton_Density", "Temperature", "Flow_Pressure",
+    "log_flux_t-1h", "log_flux_t-3h", "log_flux_t-24h", "ULF_Power",
+    "Bx_GSM", "By_GSM", "BT", "F10.7_index", "KP", "DST", "AE",
+    "Ec", "Bz_neg_dur", "dDst_dt", "AE_1h", "log_flux_t-6h", "log_flux_t-12h",
+    "MLT_sin", "MLT_cos"
 ]
 SEQ_LEN, PRED_LEN = 288, 144
 
@@ -155,8 +157,15 @@ def prepare_pretrain(path):
 
     # Standard names already present: Bz_GSM, Flow_Speed, Proton_Density, Temperature, Flow_Pressure
     # ULF_Power is missing from pre-training data — fill with typical quiet-time value
-    if 'ULF_Power' not in df.columns:
-        df['ULF_Power'] = -3.5   # quiet-time ULF baseline (log10 scale)
+    # Ensure all 25 features exist safely
+    for col in FEATURE_COLS:
+        if col not in df.columns:
+            df[col] = 0.0
+
+    # Calculate MLT (assuming GOES-16 baseline longitude of -75 degrees)
+    mlt = (df.index.hour + df.index.minute / 60.0 - 75 / 15.0) % 24
+    df['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
+    df['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
     df.dropna(subset=FEATURE_COLS, inplace=True)
     print(f"[STAGE 1] Rows after cleaning: {len(df):,}")
@@ -178,6 +187,16 @@ def prepare_finetune(path):
     df['log_flux_t-3h']   = df['log_electron_flux'].shift(36)
     df['log_flux_t-24h']  = df['log_electron_flux'].shift(288)
 
+    # Ensure all 25 features exist safely
+    for col in FEATURE_COLS:
+        if col not in df.columns:
+            df[col] = 0.0
+
+    # Calculate MLT (assuming GOES-16 baseline longitude of -75 degrees)
+    mlt = (df.index.hour + df.index.minute / 60.0 - 75 / 15.0) % 24
+    df['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
+    df['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
+
     df.dropna(subset=FEATURE_COLS, inplace=True)
     print(f"[STAGE 2] Rows after cleaning: {len(df):,}")
     return df[FEATURE_COLS].values.astype(np.float32)
@@ -194,6 +213,16 @@ def prepare_validation(path):
                                   else np.log10(np.maximum(df['electron_flux'], 1e-5))
     if 'Bz_GSM' not in df.columns and 'Bz_gsm' in df.columns:
         df['Bz_GSM'] = df['Bz_gsm']
+
+    # Ensure all 25 features exist safely
+    for col in FEATURE_COLS:
+        if col not in df.columns:
+            df[col] = 0.0
+
+    # Calculate MLT (assuming GOES-16 baseline longitude of -75 degrees)
+    mlt = (df.index.hour + df.index.minute / 60.0 - 75 / 15.0) % 24
+    df['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
+    df['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
     df.dropna(subset=FEATURE_COLS, inplace=True)
     print(f"[STAGE 3] Validation rows: {len(df):,}")
@@ -309,7 +338,7 @@ X_val_t  = torch.tensor(X_val,  dtype=torch.float32)
 y_val_t  = torch.tensor(y_val,  dtype=torch.float32)
 
 # ─── STAGE 1: Pre-train on 11-year OMNI ──────────────────────────────────────
-model = KAVACH_TFT(num_features=10, hidden_size=128, lstm_layers=2, num_quantiles=5).to(DEVICE)
+model = KAVACH_TFT(num_features=25, hidden_size=128, lstm_layers=2, num_quantiles=5).to(DEVICE)
 model = train_stage(model, X_pre_t, y_pre_t, epochs=15, lr=3e-4, batch_size=64, label="STAGE-1 PRE-TRAIN")
 evaluate(model, X_val_t, y_val_t)
 
