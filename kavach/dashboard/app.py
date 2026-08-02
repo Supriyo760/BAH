@@ -762,8 +762,14 @@ with tab_drivers:
             # Autoregressive models put 90%+ attention on the target variable (log_flux).
             # To show meaningful attribution, we normalize relative to the strongest *external driver*.
             sw_indices = [1, 2, 5, 9, 18, 23]
-            max_sw_attn = max([float(tft_attn[i]) for i in sw_indices] + [1e-6])
-            scale_factor = 0.85 / max_sw_attn  # Strongest driver will show as 85%
+            max_sw_attn = max([float(tft_attn[i]) for i in sw_indices])
+            
+            # Prevent microscopic noise from blowing up to 85% when all sensors are flatlined/dead
+            if max_sw_attn > 0.005:
+                scale_factor = 0.85 / max_sw_attn
+            else:
+                scale_factor = 15.0
+
             
             pct_vsw    = float(tft_attn[1]) * scale_factor
             pct_bz     = float(tft_attn[2]) * scale_factor
