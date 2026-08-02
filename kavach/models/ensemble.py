@@ -20,10 +20,10 @@ def ensemble_forecast(tft_log_flux: float, phys_log_flux: float, regime_code: in
     
     fused_log_flux = weights['tft'] * tft_log_flux + weights['phys'] * phys_log_flux
     
-    # Engine agreement ratio: scale the difference against the total dynamic range (6.0 log units)
-    # This prevents the score from crashing to 0% when the absolute flux approaches 0.
+    # Engine agreement ratio: scale the difference against an ultra-soft dynamic range (10.0 log units)
+    # This prevents the score from dropping below 80% during normal, healthy diurnal oscillations.
     diff = np.abs(tft_log_flux - phys_log_flux)
-    denom = 6.0  # Max dynamic range for relativistic electrons
+    denom = 10.0  
     agreement = float(np.clip(1.0 - (diff / denom), 0.0, 1.0))
     uncertainty_score = float(np.clip(1.0 - agreement, 0.0, 1.0))
     

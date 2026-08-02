@@ -425,6 +425,7 @@ mean_gap = float(np.mean(tft_f_P90 - tft_f_P10))
 confidence = float(np.clip(99.0 - (mean_gap * 20.0), 10.0, 99.0))
 
 # ─── Header ───────────────────────────────────────────────────────────────────
+# CACHE BUST v8.2
 st.markdown("""
 <p class="nasa-subtitle">ISRO BHARATIYA ANTARIKSH HACKATHON 2026 &nbsp;|&nbsp; TEAM DIGIINDIA &nbsp;|&nbsp; PS-14</p>
 <p class="nasa-title" style="margin-bottom:6px"><span>KAVACH</span> — GEO Radiation Monitor</p>
