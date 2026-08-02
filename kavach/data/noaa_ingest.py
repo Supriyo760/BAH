@@ -173,7 +173,8 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
             "Vsw": vsw, "BX_GSM": bx, "BZ_GSM": bz, "BY_GSM": by, "BT": bt,
             "Np": np_d, "KP": kp, "DST": dst, "AE": ae, "ULF_power": ulf,
             "Ec": ec, "Pdyn": pdyn, "Bz_neg_dur": bz_neg_dur, "dDst_dt": dDst,
-            "AE_1h": ae_1h, "regime": regime.astype(float), "F10.7_index": 150.0
+            "AE_1h": ae_1h, "regime": regime.astype(float), "F10.7_index": 150.0,
+            "goes_Hp": df_merged.get("goes_Hp", pd.Series(100.0, index=dates))
         }, index=dates)
         
         for lag, lbl in [(12,"1h"),(36,"3h"),(72,"6h"),(144,"12h"),(288,"24h")]:

@@ -676,9 +676,11 @@ for annotation in fig_params['layout']['annotations']:
     annotation['font'] = dict(size=11, color="#3D7AB5", family="Space Mono")
 
 # R1: Magnetosphere
-fig_params.add_trace(go.Scatter(x=t_hist, y=df["BZ_GSM"].values[-hist_n:], name="Bz (GSM)", line=dict(color="#FF5252", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["BX_GSM"].values[-hist_n:], name="Bx (GSM)", line=dict(color="#FFD54F", width=1.5)), row=1, col=1)
 fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("BY_GSM", pd.Series(0, index=df.index)).values[-hist_n:], name="By (GSM)", line=dict(color="#448AFF", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["BZ_GSM"].values[-hist_n:], name="Bz (GSM)", line=dict(color="#FF5252", width=1.5)), row=1, col=1)
 fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("BT", pd.Series(5, index=df.index)).values[-hist_n:], name="BT (Total)", line=dict(color="#E0E0E0", dash="dot", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("goes_Hp", pd.Series(100, index=df.index)).values[-hist_n:], name="Hp (GOES H-Comp)", line=dict(color="#8E24AA", width=1.5)), row=1, col=1)
 
 # R2: Kinematics
 fig_params.add_trace(go.Scatter(x=t_hist, y=df["Vsw"].values[-hist_n:], name="Speed (km/s)", line=dict(color="#69F0AE", width=1.5)), row=2, col=1)
