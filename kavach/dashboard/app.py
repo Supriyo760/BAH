@@ -257,9 +257,7 @@ font-weight:600;margin:0 0 16px 0">MISSION CONTROL</p>
 
 mode = st.sidebar.radio("DATA STREAM", [
     "Live NOAA SWPC Satellite Stream (Real-Time)",
-    "Live Operations Simulation",
-    "Historical Storm Replay",
-    "GSAT-19 GRASP Sector"
+    "Historical Storm Replay"
 ])
 
 if mode == "Historical Storm Replay":
