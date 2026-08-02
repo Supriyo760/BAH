@@ -378,10 +378,16 @@ tft_quantiles = tft_res[0] if tft_res[0] is not None else None
 tft_attn = tft_res[1] if tft_res[0] is not None else None
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
-    # Use tighter PyTorch TFT inner quantiles (P25 and P75) instead of P10/P90 which are visually too broad
-    tft_f_P10 = tft_quantiles[:, 1]  # P25
+    # Use tighter PyTorch TFT inner quantiles (P25 and P75)
+    raw_P25 = tft_quantiles[:, 1]
     tft_f_P50 = tft_quantiles[:, 2]  # Median forecast
-    tft_f_P90 = tft_quantiles[:, 3]  # P75
+    raw_P75 = tft_quantiles[:, 3]
+    
+    # Dynamic Quantile Band Width based on Geomagnetic Regime
+    spread_multiplier = 0.2 + 0.8 * (kp / 9.0)  # Narrow when Kp is low, wide when Kp is high
+    tft_f_P10 = tft_f_P50 - (tft_f_P50 - raw_P25) * spread_multiplier
+    tft_f_P90 = tft_f_P50 + (raw_P75 - tft_f_P50) * spread_multiplier
+    
     ml_30m  = float(tft_f_P50[5])    # T+30m = index 5
     ml_6h   = float(tft_f_P50[71])   # T+6h  = index 71
     ml_12h  = float(tft_f_P50[143])  # T+12h = index 143
@@ -392,8 +398,9 @@ else:
     turbulence = 0.15 * np.sin(np.linspace(0, 3*np.pi, 144)) + np.random.normal(0, 0.04, 144)
     tft_f_P50 = base_f + turbulence
     
-    # Improve 50% quantile band to form a realistic 'cone of uncertainty' widening over time
-    uncertainty_cone = np.linspace(0.02, 0.20, 144)  # narrowed for 50% band
+    # Regime-aware cone of uncertainty
+    max_cone = 0.05 + 0.30 * (kp / 9.0)
+    uncertainty_cone = np.linspace(0.01, max_cone, 144)
     tft_f_P10 = tft_f_P50 - uncertainty_cone
     tft_f_P90 = tft_f_P50 + uncertainty_cone
     ml_30m  = log_flux + 0.06*(kp-2) + 0.12*(ulf+3.5)
@@ -408,7 +415,10 @@ r30m, msg30m = risk_level(f30m, u30m)
 r6h,  msg6h  = risk_level(f6h,  u6h)
 r12h, msg12h = risk_level(f12h, u12h)
 mean_agree   = float(np.mean([a30m, a6h, a12h]) * 100)
-confidence   = float(np.clip(mean_agree * 0.8 + 20, 10, 95))
+
+# Confidence is now derived from the AI's internal mathematical uncertainty (the P90-P10 gap)
+mean_gap = float(np.mean(tft_f_P90 - tft_f_P10))
+confidence = float(np.clip(95.0 - (mean_gap * 80.0), 10.0, 95.0))
 
 # ─── Header ───────────────────────────────────────────────────────────────────
 st.markdown("""
