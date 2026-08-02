@@ -659,14 +659,15 @@ t_hist = df.index[-hist_n:]
 st.markdown('<p class="section-label">Multiparameter Historical Solar Wind Driver State (Last 24h)</p>', unsafe_allow_html=True)
 
 fig_params = make_subplots(
-    rows=5, cols=1, shared_xaxes=True,
-    vertical_spacing=0.04,
+    rows=6, cols=1, shared_xaxes=True,
+    vertical_spacing=0.03,
     subplot_titles=(
         "IMF Magnetic Field Vectors (nT)", 
         "Solar Wind Kinematics", 
         "Geomagnetic Indices", 
         "Auroral & Solar Energy", 
-        "Energy Coupling & Wave Power"
+        "Energy Coupling & Wave Power",
+        "Orbital Position (Magnetic Local Time)"
     )
 )
 
@@ -696,9 +697,15 @@ fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("F10.7_index", pd.Series(70, 
 # R5: Coupling
 fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("Ec", pd.Series(0, index=df.index)).values[-hist_n:], name="Kan-Lee Ec (mV/m)", line=dict(color="#00E676", width=1.5)), row=5, col=1)
 fig_params.add_trace(go.Scatter(x=t_hist, y=df["ULF_power"].values[-hist_n:], name="ULF Log Power (nT²/Hz)", line=dict(color="#AA00FF", width=1.5)), row=5, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("Bz_neg_dur", pd.Series(0, index=df.index)).values[-hist_n:], name="Southward Bz Duration (min)", line=dict(color="#FF1744", dash="dot", width=1.5)), row=5, col=1)
+
+# R6: Orbital Position (MLT)
+mlt_hours = t_hist.hour + t_hist.minute/60.0 + 3.2
+fig_params.add_trace(go.Scatter(x=t_hist, y=np.sin(mlt_hours * 2 * np.pi / 24.0), name="MLT (Sine)", line=dict(color="#FF9800", width=1.5)), row=6, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=np.cos(mlt_hours * 2 * np.pi / 24.0), name="MLT (Cosine)", line=dict(color="#00BCD4", width=1.5)), row=6, col=1)
 
 fig_params.update_layout(
-    height=750,
+    height=880,
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="#0B0D11",
     font=dict(family="Inter, sans-serif", size=10, color="#8AB4D4"),
@@ -707,8 +714,9 @@ fig_params.update_layout(
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
 )
 
-for i in range(1, 6):
-    fig_params.update_yaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", zeroline=False, row=i, col=1)
+for i in range(1, 7):
+    fig_params.update_yaxes(
+showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", zeroline=False, row=i, col=1)
 fig_params.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", row=5, col=1)
 
 st.plotly_chart(fig_params, use_container_width=True)
