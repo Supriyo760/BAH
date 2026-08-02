@@ -759,13 +759,18 @@ with tab_drivers:
     d1, d2 = st.columns(2)
     with d1:
         if 'tft_attn' in locals() and tft_attn is not None and getattr(tft_attn, 'shape', (0,))[0] >= 24:
-            # Multiply attention weights by 5 to make them visually meaningful (since they sum to 1 across 25 features)
-            pct_vsw = float(tft_attn[1]) * 5.0
-            pct_bz = float(tft_attn[2]) * 5.0
-            pct_ulf = float(tft_attn[9]) * 5.0
-            pct_pdyn = float(tft_attn[5]) * 5.0
-            pct_bz_dur = float(tft_attn[18]) * 5.0
-            pct_mlt = float(tft_attn[23]) * 5.0
+            # Autoregressive models put 90%+ attention on the target variable (log_flux).
+            # To show meaningful attribution, we normalize relative to the strongest *external driver*.
+            sw_indices = [1, 2, 5, 9, 18, 23]
+            max_sw_attn = max([float(tft_attn[i]) for i in sw_indices] + [1e-6])
+            scale_factor = 0.85 / max_sw_attn  # Strongest driver will show as 85%
+            
+            pct_vsw    = float(tft_attn[1]) * scale_factor
+            pct_bz     = float(tft_attn[2]) * scale_factor
+            pct_ulf    = float(tft_attn[9]) * scale_factor
+            pct_pdyn   = float(tft_attn[5]) * scale_factor
+            pct_bz_dur = float(tft_attn[18]) * scale_factor
+            pct_mlt    = float(tft_attn[23]) * scale_factor
         else:
             pct_vsw = min(0.95, vsw/800)
             pct_bz = min(0.95, abs(bz)/20)
