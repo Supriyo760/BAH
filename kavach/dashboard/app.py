@@ -652,7 +652,11 @@ st.plotly_chart(fig, use_container_width=True)
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
 # ─── Subsequent Parameters Multi-Graph ─────────────────────────────────────────
-st.markdown('<p class="section-label">Multiparameter Historical Solar Wind Driver State</p>', unsafe_allow_html=True)
+# Restrict parameter graphs to exactly 24 hours (288 samples) to avoid NOAA missing data flatlines
+hist_n = min(len(df), 288)
+t_hist = df.index[-hist_n:]
+
+st.markdown('<p class="section-label">Multiparameter Historical Solar Wind Driver State (Last 24h)</p>', unsafe_allow_html=True)
 
 fig_params = make_subplots(
     rows=5, cols=1, shared_xaxes=True,
