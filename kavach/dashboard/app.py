@@ -417,8 +417,9 @@ r12h, msg12h = risk_level(f12h, u12h)
 mean_agree   = float(np.mean([a30m, a6h, a12h]) * 100)
 
 # Confidence is now derived from the AI's internal mathematical uncertainty (the P90-P10 gap)
+# A typical gap is ~0.5 log units. We use a gentler penalty so it sits at 85-95% during quiet times.
 mean_gap = float(np.mean(tft_f_P90 - tft_f_P10))
-confidence = float(np.clip(95.0 - (mean_gap * 80.0), 10.0, 95.0))
+confidence = float(np.clip(99.0 - (mean_gap * 20.0), 10.0, 99.0))
 
 # ─── Header ───────────────────────────────────────────────────────────────────
 st.markdown("""
