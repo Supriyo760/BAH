@@ -39,7 +39,7 @@ def radial_diffusion_rhs(t: float, f: np.ndarray, L: np.ndarray, Kp: float) -> n
         
     return diff - f / tau
 
-def run_physics_forecast(current_log_flux: float, current_Kp: float, horizons_seconds: list = [1800, 21600, 43200]) -> dict:
+def run_physics_forecast(current_log_flux: float, current_Kp: float, utc_hour: float = 0.0, horizons_seconds: list = [1800, 21600, 43200]) -> dict:
     """
     Runs RK45 numerical integration for radial diffusion equation.
     Horizons: 1800s (30m), 21600s (6h), 43200s (12h).
@@ -56,9 +56,19 @@ def run_physics_forecast(current_log_flux: float, current_Kp: float, horizons_se
     decay = 0.05
     drive = 0.08 * max(current_Kp - 2.0, 0.0)
     
-    decay_30m = current_log_flux + drive*0.08 - decay*0.08
-    decay_6h  = current_log_flux + drive*1.0  - decay*1.0
-    decay_12h = current_log_flux + drive*1.8  - decay*2.0
+    # Diurnal MLT correction (GSAT-19 at 48E -> UTC + 3.2 hrs)
+    # Peak flux at Noon (12), minimum at Midnight (0)
+    def mlt_effect(future_hours):
+        local_time = (utc_hour + 3.2 + future_hours) % 24.0
+        return -0.4 * np.cos(local_time * 2.0 * np.pi / 24.0)
+        
+    delta_30m = mlt_effect(0.5) - mlt_effect(0.0)
+    delta_6h  = mlt_effect(6.0) - mlt_effect(0.0)
+    delta_12h = mlt_effect(12.0) - mlt_effect(0.0)
+    
+    decay_30m = current_log_flux + drive*0.08 - decay*0.08 + delta_30m
+    decay_6h  = current_log_flux + drive*1.0  - decay*1.0  + delta_6h
+    decay_12h = current_log_flux + drive*1.8  - decay*2.0  + delta_12h
     
     return {
         'T+30m': float(decay_30m),

@@ -370,9 +370,12 @@ bz       = float(row["BZ_GSM"])
 ulf      = float(row["ULF_power"])
 regime   = int(row["regime"])
 
+# Calculate current UTC hour for MLT physics injection
+utc_hour = float(df.index[-1].hour) + float(df.index[-1].minute) / 60.0
+
 # Execute PyTorch TFT Model Inference if available
 tft_res = run_tft_inference(tft_model_instance, tft_scaler_instance, df)
-phys = physics_forecast(log_flux, kp)
+phys = physics_forecast(log_flux, kp, utc_hour)
 
 tft_quantiles = tft_res[0] if tft_res[0] is not None else None
 tft_attn = tft_res[1] if tft_res[0] is not None else None
