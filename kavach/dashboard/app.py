@@ -758,22 +758,29 @@ with tab_drivers:
     st.markdown('<p class="section-label">Solar Wind Feature Attribution & Precursors</p>', unsafe_allow_html=True)
     d1, d2 = st.columns(2)
     with d1:
-        if 'tft_attn' in locals() and tft_attn is not None and getattr(tft_attn, 'shape', (0,))[0] >= 10:
-            pct_vsw = float(tft_attn[1])
-            pct_bz = float(tft_attn[2])
-            pct_ulf = float(tft_attn[9])
-            pct_pdyn = float(tft_attn[5])
+        if 'tft_attn' in locals() and tft_attn is not None and getattr(tft_attn, 'shape', (0,))[0] >= 24:
+            # Multiply attention weights by 5 to make them visually meaningful (since they sum to 1 across 25 features)
+            pct_vsw = float(tft_attn[1]) * 5.0
+            pct_bz = float(tft_attn[2]) * 5.0
+            pct_ulf = float(tft_attn[9]) * 5.0
+            pct_pdyn = float(tft_attn[5]) * 5.0
+            pct_bz_dur = float(tft_attn[18]) * 5.0
+            pct_mlt = float(tft_attn[23]) * 5.0
         else:
             pct_vsw = min(0.95, vsw/800)
             pct_bz = min(0.95, abs(bz)/20)
             pct_ulf = min(0.95, (ulf+4)/2.5)
             pct_pdyn = min(0.95, kp/9)
+            pct_bz_dur = min(0.95, float(row.get('Bz_neg_dur', 0))/120.0)
+            pct_mlt = min(0.95, abs(float(row.get('MLT_sin', 0))))
 
         drivers = [
             ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       pct_vsw),
             ("Bz — Southward IMF (GSM)",           f"{bz:.1f} nT",          pct_bz),
             ("ULF — Pc5 Wave Power (30-min lead)", f"{ulf:.2f} log(nT²/Hz)",pct_ulf),
             ("Pdyn — Dynamic Pressure",            f"{float(row.get('Pdyn', 0)):.2f} nPa", pct_pdyn),
+            ("Bz_dur — Southward Duration",        f"{float(row.get('Bz_neg_dur', 0)):.0f} min", pct_bz_dur),
+            ("MLT — Orbital Sine Component",       f"{float(row.get('MLT_sin', 0)):.2f}", pct_mlt),
         ]
         for name, val, pct in drivers:
             pct_val = float(np.clip(pct, 0.03, 1.0))
