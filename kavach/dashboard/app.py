@@ -386,6 +386,15 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     tft_f_P50 = tft_quantiles[:, 2]  # Median forecast
     raw_P75 = tft_quantiles[:, 3]
     
+    # --- OPERATIONAL FORECAST ANCHORING (BIAS CORRECTION) ---
+    # Neural Networks do not inherently enforce y_pred[0] == y_true[-1].
+    # We apply a constant bias shift so the yellow forecast line connects seamlessly
+    # to the blue observed line, preserving the AI's exact trend and MLT oscillations.
+    anchor_offset = log_flux - tft_f_P50[0]
+    tft_f_P50 = tft_f_P50 + anchor_offset
+    raw_P25 = raw_P25 + anchor_offset
+    raw_P75 = raw_P75 + anchor_offset
+    
     # Dynamic Quantile Band Width based on Geomagnetic Regime
     spread_multiplier = 0.2 + 0.8 * (kp / 9.0)  # Narrow when Kp is low, wide when Kp is high
     tft_f_P10 = tft_f_P50 - (tft_f_P50 - raw_P25) * spread_multiplier
