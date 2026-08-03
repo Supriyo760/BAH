@@ -112,6 +112,8 @@ def build_benchmark(storm_name, start_date, end_date, goes_df, omni_df):
     # Clip the raw flux at 1.0 pfu to prevent instrument noise from creating 
     # massive spikes on the log scale during severe flux dropouts!
     df['flux'] = np.clip(df['flux'], 1.0, None)
+    # Apply a 1-hour rolling median to smooth out the noise-floor barcode completely
+    df['flux'] = df['flux'].rolling(window=12, min_periods=1, center=True).median()
     df['log_flux'] = np.log10(df['flux'])
     
     regime = np.zeros(len(df))
