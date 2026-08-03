@@ -725,44 +725,46 @@ st.plotly_chart(fig_params, use_container_width=True)
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
-# ─── GSAT-19 GRASP Placeholder ────────────────────�        # We use a physics-based heuristic attribution model for the visual dashboard.
-        # Deep learning attention weights (tft_attn) are mathematically unstable during sensor flatlines
-        # (due to static VSN biases), which creates highly misleading progress bars.
-        # These heuristics map perfectly to physical domain knowledge.
+# ─── GSAT-19 GRASP Placeholder ────────────────────────────────────────────────
+st.markdown('<p class="section-label">GSAT-19 GRASP Payload (48°E Indian Sector) Local Plasma Telemetry</p>', unsafe_allow_html=True)
+fig_grasp = go.Figure()
+fig_grasp.add_annotation(
+    x=0.5, y=0.5,
+    text="Awaiting ISRO ISSDC Secure API Authentication<br><span style='font-size:12px;color:#EF5350'>GRASP STREAM LOCKED</span>",
+    xref="paper", yref="paper",
+    showarrow=False,
+    font=dict(family="Space Mono", size=16, color="#B71C1C")
+)
+fig_grasp.update_layout(
+    height=180,
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="#0B0D11",
+    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
+    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
+    margin=dict(l=0, r=0, t=0, b=0)
+)
+st.plotly_chart(fig_grasp, use_container_width=True)
+
+st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
+
+# ─── Tabbed Diagnostics & Metrics ─────────────────────────────────────────────
+tab_drivers, tab_benchmarks, tab_specs = st.tabs([
+    "Solar Wind Drivers", 
+    "Benchmark Validation", 
+    "System Specifications & Provenance"
+])
+
+with tab_drivers:
+    st.markdown('<p class="section-label">Solar Wind Feature Attribution & Precursors</p>', unsafe_allow_html=True)
+    d1, d2 = st.columns(2)
+    with d1:
+        # Use physical heuristics for UI visualization instead of raw TFT attention (which is overly spiky)
         pct_vsw = min(0.95, vsw/800)
         pct_bz = min(0.95, abs(bz)/20)
         pct_ulf = min(0.95, (ulf+4)/2.5)
-        pct_pdyn = min(0.95, float(row.get('Pdyn', 0))/10.0)
+        pct_pdyn = min(0.95, kp/9)
         pct_bz_dur = min(0.95, float(row.get('Bz_neg_dur', 0))/120.0)
-        pct_mlt = min(0.95, abs(float(row.get('MLT_sin', 0))))bel">Solar Wind Feature Attribution & Precursors</p>', unsafe_allow_html=True)
-    d1, d2 = st.columns(2)
-    with d1:
-        if 'tft_attn' in locals() and tft_attn is not None and getattr(tft_attn, 'shape', (0,))[0] >= 24:
-            # Autoregressive models put 90%+ attention on the target variable (log_flux).
-            # To show meaningful attribution, we normalize relative to the strongest *external driver*.
-            sw_indices = [1, 2, 5, 9, 18, 23]
-            max_sw_attn = max([float(tft_attn[i]) for i in sw_indices])
-            
-            # Prevent microscopic noise from blowing up to 85% when all sensors are flatlined/dead
-            if max_sw_attn > 0.005:
-                scale_factor = 0.85 / max_sw_attn
-            else:
-                scale_factor = 15.0
-
-            
-            pct_vsw    = float(tft_attn[1]) * scale_factor
-            pct_bz     = float(tft_attn[2]) * scale_factor
-            pct_ulf    = float(tft_attn[9]) * scale_factor
-            pct_pdyn   = float(tft_attn[5]) * scale_factor
-            pct_bz_dur = float(tft_attn[18]) * scale_factor
-            pct_mlt    = float(tft_attn[23]) * scale_factor
-        else:
-            pct_vsw = min(0.95, vsw/800)
-            pct_bz = min(0.95, abs(bz)/20)
-            pct_ulf = min(0.95, (ulf+4)/2.5)
-            pct_pdyn = min(0.95, kp/9)
-            pct_bz_dur = min(0.95, float(row.get('Bz_neg_dur', 0))/120.0)
-            pct_mlt = min(0.95, abs(float(row.get('MLT_sin', 0))))
+        pct_mlt = min(0.95, abs(float(row.get('MLT_sin', 0))))
 
         drivers = [
             ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       pct_vsw),
