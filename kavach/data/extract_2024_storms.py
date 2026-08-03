@@ -109,7 +109,10 @@ def build_benchmark(storm_name, start_date, end_date, goes_df, omni_df):
     bz_neg = pd.Series((bz < 0).astype(int))
     df['Bz_neg_dur'] = bz_neg.groupby((bz_neg != bz_neg.shift()).cumsum()).cumcount().values * 5.0
     
-    df['log_flux'] = np.log10(np.maximum(df['flux'], 1e-3))
+    # Clip the raw flux at 1.0 pfu to prevent instrument noise from creating 
+    # massive spikes on the log scale during severe flux dropouts!
+    df['flux'] = np.clip(df['flux'], 1.0, None)
+    df['log_flux'] = np.log10(df['flux'])
     
     regime = np.zeros(len(df))
     regime[kp >= 6] = 2
