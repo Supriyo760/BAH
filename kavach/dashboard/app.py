@@ -759,12 +759,16 @@ with tab_drivers:
     d1, d2 = st.columns(2)
     with d1:
         # Use physical heuristics for UI visualization instead of raw TFT attention (which is overly spiky)
+        current_t = t_hist[-1]
+        mlt_hrs = current_t.hour + current_t.minute/60.0 + 3.2
+        mlt_sin_val = np.sin(mlt_hrs * 2 * np.pi / 24.0)
+
         pct_vsw = min(0.95, vsw/800)
         pct_bz = min(0.95, abs(bz)/20)
         pct_ulf = min(0.95, (ulf+4)/2.5)
         pct_pdyn = min(0.95, kp/9)
         pct_bz_dur = min(0.95, float(row.get('Bz_neg_dur', 0))/120.0)
-        pct_mlt = min(0.95, abs(float(row.get('MLT_sin', 0))))
+        pct_mlt = min(0.95, abs(mlt_sin_val))
 
         drivers = [
             ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       pct_vsw),
@@ -772,7 +776,7 @@ with tab_drivers:
             ("ULF — Pc5 Wave Power (30-min lead)", f"{ulf:.2f} log(nT²/Hz)",pct_ulf),
             ("Pdyn — Dynamic Pressure",            f"{float(row.get('Pdyn', 0)):.2f} nPa", pct_pdyn),
             ("Bz_dur — Southward Duration",        f"{float(row.get('Bz_neg_dur', 0)):.0f} min", pct_bz_dur),
-            ("MLT — Orbital Sine Component",       f"{float(row.get('MLT_sin', 0)):.2f}", pct_mlt),
+            ("MLT — Orbital Sine Component",       f"{mlt_sin_val:.2f}", pct_mlt),
         ]
         for name, val, pct in drivers:
             pct_val = float(np.clip(pct, 0.03, 1.0))
