@@ -93,6 +93,14 @@ def load_storm_from_csv(name):
             "csv": os.path.join(ROOT_DIR, "DataSets", "Kaggle_FineTuning_Dataset.csv"),
             "start": "2018-08-25", "end": "2018-08-27"
         },
+        "G5 Mother's Day Storm (May 2024)": {
+            "csv": os.path.join(ROOT_DIR, "kavach", "data", "historical", "may_2024_benchmark.csv"),
+            "start": "2024-05-10", "end": "2024-05-14"
+        },
+        "G4 Aurora Storm (Oct 2024)": {
+            "csv": os.path.join(ROOT_DIR, "kavach", "data", "historical", "oct_2024_benchmark.csv"),
+            "start": "2024-10-09", "end": "2024-10-13"
+        },
     }
 
     cfg = STORM_CONFIG.get(name)
@@ -149,6 +157,8 @@ STORM_META = {
     "March 2015 Storm":               {"min_dst":-188,"max_kp":7,"desc":"Strong G3 storm. Significant flux dropout at GEO. Real NASA ATHA ULF + GOES data."},
     "September 2017 Storm":           {"min_dst":-142,"max_kp":8,"desc":"Extreme X8.2 flare. Catastrophic flux dropout then violent injection. Real NASA ATHA ULF + GOES data."},
     "August 2018 Storm":              {"min_dst":-174,"max_kp":6,"desc":"G2 moderate storm. GSAT-19 GRASP baseline validation event. Real GOES-16 + ATHA ULF data."},
+    "G5 Mother's Day Storm (May 2024)": {"min_dst":-412,"max_kp":9,"desc":"The most severe G5 extreme geomagnetic storm of Solar Cycle 25. True benchmark dataset extracted natively from OMNI and GOES-16 without proxies."},
+    "G4 Aurora Storm (Oct 2024)":       {"min_dst":-269,"max_kp":8,"desc":"Severe G4 storm caused by a fast halo CME. Benchmark dataset extracted natively from OMNI and GOES-16."},
 }
 
 WEIGHTS_VERSION = "v8"  # bump to bust Streamlit @cache_resource
