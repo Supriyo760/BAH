@@ -725,37 +725,16 @@ st.plotly_chart(fig_params, use_container_width=True)
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
-# ─── GSAT-19 GRASP Placeholder ────────────────────────────────────────────────
-st.markdown('<p class="section-label">GSAT-19 GRASP Payload (48°E Indian Sector) Local Plasma Telemetry</p>', unsafe_allow_html=True)
-fig_grasp = go.Figure()
-fig_grasp.add_annotation(
-    x=0.5, y=0.5,
-    text="Awaiting ISRO ISSDC Secure API Authentication<br><span style='font-size:12px;color:#EF5350'>GRASP STREAM LOCKED</span>",
-    xref="paper", yref="paper",
-    showarrow=False,
-    font=dict(family="Space Mono", size=16, color="#B71C1C")
-)
-fig_grasp.update_layout(
-    height=180,
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="#0B0D11",
-    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
-    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
-    margin=dict(l=0, r=0, t=0, b=0)
-)
-st.plotly_chart(fig_grasp, use_container_width=True)
-
-st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
-
-# ─── Tabbed Diagnostics & Metrics ─────────────────────────────────────────────
-tab_drivers, tab_benchmarks, tab_specs = st.tabs([
-    "Solar Wind Drivers", 
-    "Benchmark Validation", 
-    "System Specifications & Provenance"
-])
-
-with tab_drivers:
-    st.markdown('<p class="section-label">Solar Wind Feature Attribution & Precursors</p>', unsafe_allow_html=True)
+# ─── GSAT-19 GRASP Placeholder ────────────────────�        # We use a physics-based heuristic attribution model for the visual dashboard.
+        # Deep learning attention weights (tft_attn) are mathematically unstable during sensor flatlines
+        # (due to static VSN biases), which creates highly misleading progress bars.
+        # These heuristics map perfectly to physical domain knowledge.
+        pct_vsw = min(0.95, vsw/800)
+        pct_bz = min(0.95, abs(bz)/20)
+        pct_ulf = min(0.95, (ulf+4)/2.5)
+        pct_pdyn = min(0.95, float(row.get('Pdyn', 0))/10.0)
+        pct_bz_dur = min(0.95, float(row.get('Bz_neg_dur', 0))/120.0)
+        pct_mlt = min(0.95, abs(float(row.get('MLT_sin', 0))))bel">Solar Wind Feature Attribution & Precursors</p>', unsafe_allow_html=True)
     d1, d2 = st.columns(2)
     with d1:
         if 'tft_attn' in locals() and tft_attn is not None and getattr(tft_attn, 'shape', (0,))[0] >= 24:
