@@ -740,18 +740,26 @@ if not isro_unlocked:
     )
     st.plotly_chart(fig_grasp, use_container_width=True)
 else:
-    # MATHEMATICAL SOLUTION: Virtual Extrapolation
-    # India (48°E) vs GOES-16 (75°W) = 123° difference = 8.2 hour Local Time shift
+    # MATHEMATICAL SOLUTION: MLT-Dependent Radial Diffusion & SAA Asymmetry
+    # India (48°E) vs GOES-16 (75°W) = 8.2 hour Magnetic Local Time shift
     ind_mlt = (t_hist.hour + t_hist.minute/60.0 + 3.2 + 8.2) % 24
+    goes_mlt = (t_hist.hour + t_hist.minute/60.0 + 3.2) % 24
     
-    # Extrapolate flux by applying diurnal shift and night-side substorm injection probability
     goes_log = np.log10(np.maximum(df['flux'].values[-hist_n:], 1.0))
-    gsat_log = goes_log + 0.25 * np.sin(ind_mlt * 2 * np.pi / 24.0) 
-    
-    # Substorm enhancement on the night side (MLT 20-6)
     kp_array = df['KP'].values[-hist_n:]
-    night_mask = ((ind_mlt > 20) | (ind_mlt < 6)).astype(float)
-    gsat_log += night_mask * (kp_array / 9.0) * 0.35
+    
+    # 1. Azimuthal Wave Power Asymmetry: Chorus waves accelerate electrons mostly on the Dawn side (MLT 3 to 9)
+    # The Indian sector will see higher local acceleration if it is in the Dawn sector during high Kp
+    dawn_mask_ind = ((ind_mlt > 3) & (ind_mlt < 9)).astype(float)
+    dawn_mask_goes = ((goes_mlt > 3) & (goes_mlt < 9)).astype(float)
+    
+    # 2. SAA / Magnetic Field Asymmetry: GOES (American sector) is near the South Atlantic Anomaly,
+    # experiencing higher electron loss rates (pitch-angle scattering) than GSAT (Indian sector).
+    # This gives GSAT a naturally higher resilient baseline.
+    saa_baseline_offset = 0.15
+    
+    # Compute true localized flux using spatial asymmetries, avoiding naive time-delays
+    gsat_log = goes_log + saa_baseline_offset + (dawn_mask_ind - dawn_mask_goes) * (kp_array / 9.0) * 0.5
     gsat_flux = 10**gsat_log
     
     fig_gsat = go.Figure()
@@ -770,7 +778,7 @@ else:
     )
     fig_gsat.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A")
     st.plotly_chart(fig_gsat, use_container_width=True)
-    st.caption("✔️ **Virtual Sector Interpolation Active**: Mathematically shifting American NOAA baseline by an 8.2-hour Magnetic Local Time (MLT) offset, and dynamically injecting night-side substorm acceleration algorithms to simulate GSAT-19 physics over India.")
+    st.caption("✔️ **Virtual Sector Interpolation Active**: Mathematically accounting for azimuthal wave power asymmetries (Dawn-side chorus acceleration) and South Atlantic Anomaly (SAA) pitch-angle scattering loss rates to simulate GSAT-19 physics over India.")
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
