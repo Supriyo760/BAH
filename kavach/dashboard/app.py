@@ -77,22 +77,6 @@ def load_storm_from_csv(name):
     """
     # Storm configurations: each event maps to a real dataset file and date range
     STORM_CONFIG = {
-        "St. Patrick's Day Storm (2015)": {
-            "csv": os.path.join(ROOT_DIR, "DataSets", "Kaggle_Validation_March2015.csv"),
-            "start": "2015-03-17", "end": "2015-03-19"
-        },
-        "March 2015 Storm": {
-            "csv": os.path.join(ROOT_DIR, "DataSets", "Kaggle_Validation_March2015.csv"),
-            "start": "2015-03-07", "end": "2015-03-09"
-        },
-        "September 2017 Storm": {
-            "csv": os.path.join(ROOT_DIR, "DataSets", "Kaggle_FineTuning_Dataset.csv"),
-            "start": "2017-09-07", "end": "2017-09-09"
-        },
-        "August 2018 Storm": {
-            "csv": os.path.join(ROOT_DIR, "DataSets", "Kaggle_FineTuning_Dataset.csv"),
-            "start": "2018-08-25", "end": "2018-08-27"
-        },
         "G5 Mother's Day Storm (May 2024)": {
             "csv": os.path.join(ROOT_DIR, "kavach", "data", "historical", "may_2024_benchmark.csv"),
             "start": "2024-05-10", "end": "2024-05-14"
@@ -153,10 +137,6 @@ from kavach.models.ensemble import classify_risk as risk_level
 REGIME_LABELS = {0:"QUIET  (Kp < 3)", 1:"MODERATE  (Kp 3–6)", 2:"STORM  (Kp ≥ 6)", 3:"RECOVERY  (Post-Storm)"}
 # Only 4 storms backed by real, verified NASA/NOAA data
 STORM_META = {
-    "St. Patrick's Day Storm (2015)": {"min_dst":-223,"max_kp":8,"desc":"Strongest storm of Solar Cycle 24. X1 flare. Real NASA ATHA ULF + GOES data."},
-    "March 2015 Storm":               {"min_dst":-188,"max_kp":7,"desc":"Strong G3 storm. Significant flux dropout at GEO. Real NASA ATHA ULF + GOES data."},
-    "September 2017 Storm":           {"min_dst":-142,"max_kp":8,"desc":"Extreme X8.2 flare. Catastrophic flux dropout then violent injection. Real NASA ATHA ULF + GOES data."},
-    "August 2018 Storm":              {"min_dst":-174,"max_kp":6,"desc":"G2 moderate storm. GSAT-19 GRASP baseline validation event. Real GOES-16 + ATHA ULF data."},
     "G5 Mother's Day Storm (May 2024)": {"min_dst":-412,"max_kp":9,"desc":"The most severe G5 extreme geomagnetic storm of Solar Cycle 25. True benchmark dataset extracted natively from OMNI and GOES-16 without proxies."},
     "G4 Aurora Storm (Oct 2024)":       {"min_dst":-269,"max_kp":8,"desc":"Severe G4 storm caused by a fast halo CME. Benchmark dataset extracted natively from OMNI and GOES-16."},
 }
