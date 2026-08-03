@@ -771,7 +771,9 @@ with tab_drivers:
         bz_dur_val = float(row.get('Bz_neg_dur', 0.0))
         bt_val = float(row.get('BT', 5.0))
         f107_val = float(row.get('F10.7_index', 150.0))
-        ddst_val = float(row.get('dDst_dt', 0.0))
+        
+        # dDst_dt from ingest is in nT/min. Convert to nT/hr for the UI display without breaking the ML model inputs.
+        ddst_val = float(row.get('dDst_dt', 0.0)) * 60.0
 
         pct_vsw    = min(0.95, vsw / 800)
         pct_bz     = min(0.95, abs(bz) / 20)          # 20 nT = full storm
