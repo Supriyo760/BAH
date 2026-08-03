@@ -738,9 +738,8 @@ st.plotly_chart(fig_grasp, use_container_width=True)
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
 # ─── Tabbed Diagnostics & Metrics ─────────────────────────────────────────────
-tab_drivers, tab_benchmarks, tab_specs = st.tabs([
+tab_drivers, tab_specs = st.tabs([
     "Solar Wind Drivers", 
-    "Benchmark Validation", 
     "System Specifications & Provenance"
 ])
 
@@ -814,62 +813,6 @@ with tab_drivers:
 **Dynamic Pressure (Pdyn):** {float(row.get('Pdyn', 0)):.2f} nPa
 **Bz Negative Duration:** {float(row.get('Bz_neg_dur', 0)):.0f} min
         """)
-
-with tab_benchmarks:
-    st.markdown('<p class="section-label">Historical Storm Replay Performance Benchmarks</p>', unsafe_allow_html=True)
-    st.caption("Note: The scores below represent offline backtest validation targets for these specific storm events. They are not computed dynamically in real-time.")
-    metrics_df = pd.DataFrame({
-        "Storm Event":    ["St. Patrick (Mar 17, 2015)", "March 2015 (Mar 7, 2015)", "Sept 2017", "Aug 2018"],
-        "Max Kp":         [8, 7, 8, 6],
-        "Min Dst (nT)":   [-223, -188, -142, -174],
-        "RMSE (log pfu)": [0.15, 0.13, 0.15, 0.10],
-        "HSS (T+30m)":    [0.86, 0.88, 0.85, 0.92],
-        "POD (≥ RED)":    [0.95, 0.97, 0.96, 0.98],
-        "FAR":            [0.06, 0.05, 0.07, 0.03],
-    })
-    st.markdown('<p class="section-label" style="margin-top:20px;">Interactive Validation: Observed vs Predicted Flux</p>', unsafe_allow_html=True)
-    
-    val_storm = st.selectbox("Select Validation Storm Event:", 
-                             ["Sept 2017 (G4)", "Aug 2018 (G3)", "St. Patrick's Day 2015 (G4)", "March 2015 (G3)"])
-    
-    try:
-        if "2015" in val_storm:
-            val_df = pd.read_csv("DataSets/Kaggle_Validation_March2015.csv", parse_dates=['datetime'], index_col='datetime')
-            if "St. Patrick" in val_storm:
-                val_df = val_df.loc['2015-03-17':'2015-03-19']
-            else:
-                val_df = val_df.loc['2015-03-07':'2015-03-09']
-        else:
-            val_df = pd.read_csv("DataSets/Kaggle_FineTuning_Dataset.csv", parse_dates=['datetime'], index_col='datetime')
-            if "2017" in val_storm:
-                val_df = val_df.loc['2017-09-07':'2017-09-09']
-            else:
-                val_df = val_df.loc['2018-08-25':'2018-08-27']
-        
-        # Handle different column names between datasets ('electron_flux' vs 'Electron_Flux')
-        flux_col = 'Electron_Flux' if 'Electron_Flux' in val_df.columns else 'electron_flux'
-        
-        # Simulate the TFT validation output based on our model's RMSE
-        log_true = np.log10(np.maximum(val_df[flux_col], 1e-3))
-        log_pred = log_true.rolling(4, min_periods=1).mean() * 0.95 + 0.1
-        val_df['Predicted_Flux'] = 10**log_pred
-        
-        fig_val = go.Figure()
-        fig_val.add_trace(go.Scatter(x=val_df.index, y=val_df[flux_col], name="Observed (GOES)", line=dict(color="#4FC3F7", width=1.5)))
-        fig_val.add_trace(go.Scatter(x=val_df.index, y=val_df['Predicted_Flux'], name="TFT Predicted (P50)", line=dict(color="#FFB74D", width=1.5, dash='dot')))
-        
-        fig_val.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            yaxis_type="log",
-            margin=dict(l=0, r=0, t=10, b=0),
-            height=300,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        st.plotly_chart(fig_val, use_container_width=True)
-    except Exception as e:
-        st.caption(f"Validation dataset not found or still processing. Please ensure DataSets are available. ({e})")
 
 with tab_specs:
     st.markdown('<p class="section-label">Architecture, Training & Mission Payload Hardware Specifications</p>', unsafe_allow_html=True)
