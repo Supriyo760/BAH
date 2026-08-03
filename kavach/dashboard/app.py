@@ -717,23 +717,60 @@ st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
 # ─── GSAT-19 GRASP Placeholder ────────────────────────────────────────────────
 st.markdown('<p class="section-label">GSAT-19 GRASP Payload (48°E Indian Sector) Local Plasma Telemetry</p>', unsafe_allow_html=True)
-fig_grasp = go.Figure()
-fig_grasp.add_annotation(
-    x=0.5, y=0.5,
-    text="Awaiting ISRO ISSDC Secure API Authentication<br><span style='font-size:12px;color:#EF5350'>GRASP STREAM LOCKED</span>",
-    xref="paper", yref="paper",
-    showarrow=False,
-    font=dict(family="Space Mono", size=16, color="#B71C1C")
-)
-fig_grasp.update_layout(
-    height=180,
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="#0B0D11",
-    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
-    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
-    margin=dict(l=0, r=0, t=0, b=0)
-)
-st.plotly_chart(fig_grasp, use_container_width=True)
+
+# The user can unlock this for the demo to show they have a mathematical solution
+isro_unlocked = st.sidebar.checkbox("Unlock Virtual GSAT-19 (48°E Indian Sector)", value=False)
+
+if not isro_unlocked:
+    fig_grasp = go.Figure()
+    fig_grasp.add_annotation(
+        x=0.5, y=0.5,
+        text="Awaiting ISRO ISSDC Secure API Authentication<br><span style='font-size:12px;color:#EF5350'>GRASP STREAM LOCKED (Unlock in Sidebar for Virtual Mode)</span>",
+        xref="paper", yref="paper",
+        showarrow=False,
+        font=dict(family="Space Mono", size=16, color="#B71C1C")
+    )
+    fig_grasp.update_layout(
+        height=180,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#0B0D11",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
+        margin=dict(l=0, r=0, t=0, b=0)
+    )
+    st.plotly_chart(fig_grasp, use_container_width=True)
+else:
+    # MATHEMATICAL SOLUTION: Virtual Extrapolation
+    # India (48°E) vs GOES-16 (75°W) = 123° difference = 8.2 hour Local Time shift
+    ind_mlt = (t_hist.hour + t_hist.minute/60.0 + 3.2 + 8.2) % 24
+    
+    # Extrapolate flux by applying diurnal shift and night-side substorm injection probability
+    goes_log = np.log10(np.maximum(df['flux'].values[-hist_n:], 1.0))
+    gsat_log = goes_log + 0.25 * np.sin(ind_mlt * 2 * np.pi / 24.0) 
+    
+    # Substorm enhancement on the night side (MLT 20-6)
+    kp_array = df['KP'].values[-hist_n:]
+    night_mask = ((ind_mlt > 20) | (ind_mlt < 6)).astype(float)
+    gsat_log += night_mask * (kp_array / 9.0) * 0.35
+    gsat_flux = 10**gsat_log
+    
+    fig_gsat = go.Figure()
+    fig_gsat.add_trace(go.Scatter(x=t_hist, y=df['flux'].values[-hist_n:], name="Observed GOES (American Sector)", line=dict(color="#4FC3F7", width=1.5, dash="dot")))
+    fig_gsat.add_trace(go.Scatter(x=t_hist, y=gsat_flux, name="Virtual GSAT-19 (Indian Sector Interpolation)", line=dict(color="#00E676", width=2)))
+    
+    fig_gsat.update_layout(
+        height=300,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#0B0D11",
+        yaxis_type="log",
+        font=dict(family="Inter, sans-serif", size=10, color="#8AB4D4"),
+        margin=dict(l=40, r=20, t=10, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
+        yaxis=dict(title="Electron Flux [>2 MeV]", showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", range=[0, 6])
+    )
+    fig_gsat.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A")
+    st.plotly_chart(fig_gsat, use_container_width=True)
+    st.caption("✔️ **Virtual Sector Interpolation Active**: Mathematically shifting American NOAA baseline by an 8.2-hour Magnetic Local Time (MLT) offset, and dynamically injecting night-side substorm acceleration algorithms to simulate GSAT-19 physics over India.")
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
