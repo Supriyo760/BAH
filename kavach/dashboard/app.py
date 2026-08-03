@@ -763,20 +763,37 @@ with tab_drivers:
         mlt_hrs = current_t.hour + current_t.minute/60.0 + 3.2
         mlt_sin_val = np.sin(mlt_hrs * 2 * np.pi / 24.0)
 
-        pct_vsw = min(0.95, vsw/800)
-        pct_bz = min(0.95, abs(bz)/20)
-        pct_ulf = min(0.95, (ulf+4)/2.5)
-        pct_pdyn = min(0.95, kp/9)
-        pct_bz_dur = min(0.95, float(row.get('Bz_neg_dur', 0))/120.0)
-        pct_mlt = min(0.95, abs(mlt_sin_val))
+        # Pull scalar values from the last row
+        np_val  = float(row.get('Np',  5.0))
+        ae_val  = float(row.get('AE',  100.0))
+        ec_val  = float(row.get('Ec',  0.0))
+        pdyn_val = float(row.get('Pdyn', 2.0))
+        bz_dur_val = float(row.get('Bz_neg_dur', 0.0))
+
+        pct_vsw    = min(0.95, vsw / 800)
+        pct_bz     = min(0.95, abs(bz) / 20)          # 20 nT = full storm
+        pct_ulf    = min(0.95, (ulf + 4) / 2.5)       # ULF range: -4 to -1.5
+        pct_pdyn   = min(0.95, pdyn_val / 20)          # 20 nPa = extreme pressure
+        pct_bz_dur = min(0.95, bz_dur_val / 120.0)    # 120 min = 2 hr sustained southward
+        pct_mlt    = min(0.95, abs(mlt_sin_val))
+        pct_kp     = min(0.95, kp / 9.0)              # Kp 0-9 scale
+        pct_dst    = min(0.95, abs(dst) / 150)        # -150 nT = severe storm
+        pct_ae     = min(0.95, ae_val / 2000)         # 2000 nT = substorm max
+        pct_np     = min(0.95, np_val / 50)           # 50 cm⁻³ = extreme density
+        pct_ec     = min(0.95, ec_val / 5)            # 5 mV/m = extreme coupling
 
         drivers = [
             ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       pct_vsw),
             ("Bz — Southward IMF (GSM)",           f"{bz:.1f} nT",          pct_bz),
             ("ULF — Pc5 Wave Power (30-min lead)", f"{ulf:.2f} log(nT²/Hz)",pct_ulf),
-            ("Pdyn — Dynamic Pressure",            f"{float(row.get('Pdyn', 0)):.2f} nPa", pct_pdyn),
-            ("Bz_dur — Southward Duration",        f"{float(row.get('Bz_neg_dur', 0)):.0f} min", pct_bz_dur),
-            ("MLT — Orbital Sine Component",       f"{mlt_sin_val:.2f}", pct_mlt),
+            ("Pdyn — Dynamic Pressure",            f"{pdyn_val:.2f} nPa",   pct_pdyn),
+            ("Bz_dur — Southward Duration",        f"{bz_dur_val:.0f} min", pct_bz_dur),
+            ("MLT — Orbital Sine Component",       f"{mlt_sin_val:.2f}",    pct_mlt),
+            ("Kp — Geomagnetic Activity",          f"{kp:.1f}",             pct_kp),
+            ("Dst — Ring Current Injection",       f"{dst:.0f} nT",         pct_dst),
+            ("AE — Auroral Electrojet",            f"{ae_val:.0f} nT",      pct_ae),
+            ("Np — Proton Density",               f"{np_val:.1f} cm⁻³",    pct_np),
+            ("Ec — Kan-Lee Coupling Field",        f"{ec_val:.2f} mV/m",    pct_ec),
         ]
         for name, val, pct in drivers:
             pct_val = float(np.clip(pct, 0.03, 1.0))
