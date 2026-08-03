@@ -85,6 +85,7 @@ def build_benchmark(storm_name, start_date, end_date, goes_df, omni_df):
     df['BT'] = np.sqrt(bx**2 + by**2 + bz**2)
     pdyn_fallback = 0.5 * 1.67e-27 * (np_d * 1e6) * (vsw * 1e3)**2 * 1e9
     df['Pdyn'] = df['Flow_Pressure'].fillna(pd.Series(pdyn_fallback, index=df.index))
+    del df['Flow_Pressure']  # Drop to prevent duplicate columns in the dashboard
     
     theta = np.arctan2(by, bz)
     theta = np.where(theta < 0, theta + 2*np.pi, theta)
