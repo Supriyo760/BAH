@@ -127,8 +127,9 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         else:
             kp = np.clip(2 + 0.01*(vsw-400) + 0.3*np.abs(bz), 0, 9)
             
-        dst   = -10 - 15*(kp/3.0)**1.5  # Mathematical fallback (Live Kyoto API usually requires auth)
-        ae    = 100 + 120*(kp/2.0)
+        dst_raw = -10 - 15*(kp/3.0)**1.5  # Mathematical fallback (Live Kyoto API usually requires auth)
+        dst     = pd.Series(dst_raw).ewm(span=6).mean().values  # Smooth transitions to prevent unphysical gradient step spikes
+        ae      = 100 + 120*(kp/2.0)
         
         # Real-time ULF Power Proxy
         # If GOES Magnetometer (Hp) is available, use it. Otherwise, fallback to Solar Wind Bz.
@@ -159,7 +160,7 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         
         bz_neg     = pd.Series((bz < 0).astype(int))
         bz_neg_dur = bz_neg.groupby((bz_neg != bz_neg.shift()).cumsum()).cumcount().values * 5.0
-        dDst       = np.gradient(dst) / 5.0
+        dDst       = np.clip(np.gradient(dst) / 5.0, -1.5, 1.5)  # Clip unphysical single-step gradient spikes (-1.5 to +1.5 nT/min)
         ae_1h      = pd.Series(ae).rolling(12, min_periods=1).mean().values
         
         regime = np.zeros(n)

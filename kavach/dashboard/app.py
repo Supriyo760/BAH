@@ -788,7 +788,7 @@ with tab_drivers:
         pct_ec     = min(0.95, ec_val / 5)            # 5 mV/m = extreme coupling
         pct_bt     = min(0.95, bt_val / 30)           # 30 nT = massive total field
         pct_f107   = min(0.95, (f107_val - 70) / 180) # 70 to 250 range
-        pct_ddst   = min(0.95, abs(ddst_val) / 50)    # 50 nT/hr drop = rapid intensification
+        pct_ddst   = min(0.95, max(0.0, -ddst_val) / 50.0) # Intensification is specifically negative dDst/dt (drop rate)
 
         drivers = [
             ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       pct_vsw),
