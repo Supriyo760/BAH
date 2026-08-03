@@ -769,6 +769,9 @@ with tab_drivers:
         ec_val  = float(row.get('Ec',  0.0))
         pdyn_val = float(row.get('Pdyn', 2.0))
         bz_dur_val = float(row.get('Bz_neg_dur', 0.0))
+        bt_val = float(row.get('BT', 5.0))
+        f107_val = float(row.get('F10.7_index', 150.0))
+        ddst_val = float(row.get('dDst_dt', 0.0))
 
         pct_vsw    = min(0.95, vsw / 800)
         pct_bz     = min(0.95, abs(bz) / 20)          # 20 nT = full storm
@@ -781,19 +784,25 @@ with tab_drivers:
         pct_ae     = min(0.95, ae_val / 2000)         # 2000 nT = substorm max
         pct_np     = min(0.95, np_val / 50)           # 50 cm⁻³ = extreme density
         pct_ec     = min(0.95, ec_val / 5)            # 5 mV/m = extreme coupling
+        pct_bt     = min(0.95, bt_val / 30)           # 30 nT = massive total field
+        pct_f107   = min(0.95, (f107_val - 70) / 180) # 70 to 250 range
+        pct_ddst   = min(0.95, abs(ddst_val) / 50)    # 50 nT/hr drop = rapid intensification
 
         drivers = [
             ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       pct_vsw),
+            ("BT — Total Magnetic Field",          f"{bt_val:.1f} nT",      pct_bt),
             ("Bz — Southward IMF (GSM)",           f"{bz:.1f} nT",          pct_bz),
+            ("Bz_dur — Southward Duration",        f"{bz_dur_val:.0f} min", pct_bz_dur),
             ("ULF — Pc5 Wave Power (30-min lead)", f"{ulf:.2f} log(nT²/Hz)",pct_ulf),
             ("Pdyn — Dynamic Pressure",            f"{pdyn_val:.2f} nPa",   pct_pdyn),
-            ("Bz_dur — Southward Duration",        f"{bz_dur_val:.0f} min", pct_bz_dur),
-            ("MLT — Orbital Sine Component",       f"{mlt_sin_val:.2f}",    pct_mlt),
+            ("Np — Proton Density",               f"{np_val:.1f} cm⁻³",    pct_np),
             ("Kp — Geomagnetic Activity",          f"{kp:.1f}",             pct_kp),
             ("Dst — Ring Current Injection",       f"{dst:.0f} nT",         pct_dst),
+            ("dDst/dt — Storm Intensification Rate",f"{ddst_val:.1f} nT/hr",pct_ddst),
             ("AE — Auroral Electrojet",            f"{ae_val:.0f} nT",      pct_ae),
-            ("Np — Proton Density",               f"{np_val:.1f} cm⁻³",    pct_np),
             ("Ec — Kan-Lee Coupling Field",        f"{ec_val:.2f} mV/m",    pct_ec),
+            ("F10.7 — Solar Radio Flux",           f"{f107_val:.1f} sfu",   pct_f107),
+            ("MLT — Orbital Sine Component",       f"{mlt_sin_val:.2f}",    pct_mlt),
         ]
         for name, val, pct in drivers:
             pct_val = float(np.clip(pct, 0.03, 1.0))
