@@ -116,7 +116,7 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         n = len(vsw)
         dates = df_merged.index
         
-        bt    = np.sqrt(by**2 + bz**2)
+        bt    = np.sqrt(bx**2 + by**2 + bz**2)  # Correct 3D total field magnitude
         theta = np.arctan2(by, bz)
         # Kan-Lee Electric Field (mV/m) instead of Newell Coupling
         ec    = np.clip(vsw * bt * (np.sin(theta/2)**2) * 1e-3, 0, None)
