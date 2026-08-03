@@ -800,7 +800,7 @@ with tab_drivers:
             ("Np — Proton Density",               f"{np_val:.1f} cm⁻³",    pct_np),
             ("Kp — Geomagnetic Activity",          f"{kp:.1f}",             pct_kp),
             ("Dst — Ring Current Injection",       f"{dst:.0f} nT",         pct_dst),
-            ("dDst/dt — Storm Intensification Rate",f"{ddst_val:.1f} nT/hr",pct_ddst),
+            ("dDst/dt — Storm Intensification Rate", f"{ddst_val:.1f} nT/hr {'(Recovery)' if ddst_val > 2 else '(Stable)' if ddst_val > -5 else '(Intensifying!)'}", pct_ddst),
             ("AE — Auroral Electrojet",            f"{ae_val:.0f} nT",      pct_ae),
             ("Ec — Kan-Lee Coupling Field",        f"{ec_val:.2f} mV/m",    pct_ec),
             ("F10.7 — Solar Radio Flux",           f"{f107_val:.1f} sfu",   pct_f107),
