@@ -107,11 +107,11 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
         by_raw  = df_merged.get("by_gsm", pd.Series(0.0, index=df_merged.index))
         np_raw  = df_merged.get("proton_density", df_merged.get("density", pd.Series(5.0, index=df_merged.index)))
         
-        vsw  = pd.to_numeric(vsw_raw, errors="coerce").fillna(400.0).values
-        bx   = pd.to_numeric(bx_raw, errors="coerce").fillna(0.0).values
-        bz   = pd.to_numeric(bz_raw, errors="coerce").fillna(0.0).values
-        by   = pd.to_numeric(by_raw, errors="coerce").fillna(0.0).values
-        np_d = pd.to_numeric(np_raw, errors="coerce").fillna(5.0).values
+        vsw  = pd.to_numeric(vsw_raw, errors="coerce").ffill().bfill().fillna(400.0).values
+        bx   = pd.to_numeric(bx_raw, errors="coerce").ffill().bfill().fillna(0.0).values
+        bz   = pd.to_numeric(bz_raw, errors="coerce").ffill().bfill().fillna(0.0).values
+        by   = pd.to_numeric(by_raw, errors="coerce").ffill().bfill().fillna(0.0).values
+        np_d = pd.to_numeric(np_raw, errors="coerce").ffill().bfill().fillna(5.0).values
         
         n = len(vsw)
         dates = df_merged.index
