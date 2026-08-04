@@ -649,14 +649,13 @@ t_hist = df.index[-hist_n:]
 st.markdown('<p class="section-label">Multiparameter Historical Solar Wind Driver State (Last 24h)</p>', unsafe_allow_html=True)
 
 fig_params = make_subplots(
-    rows=5, cols=1, shared_xaxes=True,
-    vertical_spacing=0.03,
+    rows=4, cols=1, shared_xaxes=True,
+    vertical_spacing=0.04,
     subplot_titles=(
         "IMF Magnetic Field Vectors (nT)", 
         "Solar Wind Velocity (km/s)", 
         "Geomagnetic Indices & Pressure (Psw, AE, Dst)", 
-        "Orbital Position (Magnetic Local Time)",
-        "Electron Flux (>2 MeV) - GOES & Virtual GRASP"
+        "Orbital Position (Magnetic Local Time)"
     )
 )
 
@@ -684,23 +683,8 @@ fig_params.add_trace(go.Scatter(x=t_hist, y=df["DST"].values[-hist_n:], name="Ds
 mlt_hours = (t_hist.hour + t_hist.minute/60.0 + 3.2) % 24
 fig_params.add_trace(go.Scatter(x=t_hist, y=mlt_hours, name="MLT (Hours)", line=dict(color="#FF9800", width=1.5)), row=4, col=1)
 
-# R5: Electron Flux (GOES & GRASP)
-isro_unlocked = st.sidebar.checkbox("Unlock Virtual GSAT-19 (48°E Indian Sector)", value=True)
-goes_flux = df['flux'].values[-hist_n:]
-
-fig_params.add_trace(go.Scatter(x=t_hist, y=goes_flux, name="Observed GOES (American Sector)", line=dict(color="#4FC3F7", width=1.5, dash="dot")), row=5, col=1)
-
-if isro_unlocked:
-    ind_mlt = (mlt_hours + 8.2) % 24
-    goes_log = np.log10(np.maximum(goes_flux, 1.0))
-    kp_array = df['KP'].values[-hist_n:]
-    dawn_mask_ind = ((ind_mlt > 3) & (ind_mlt < 9)).astype(float)
-    dawn_mask_goes = ((mlt_hours > 3) & (mlt_hours < 9)).astype(float)
-    gsat_log = goes_log + 0.15 + (dawn_mask_ind - dawn_mask_goes) * (kp_array / 9.0) * 0.5
-    fig_params.add_trace(go.Scatter(x=t_hist, y=10**gsat_log, name="Virtual GSAT-19 (Indian Sector Interpolation)", line=dict(color="#00E676", width=2)), row=5, col=1)
-
 fig_params.update_layout(
-    height=900,
+    height=720,
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="#0B0D11",
     font=dict(family="Inter, sans-serif", size=10, color="#8AB4D4"),
@@ -713,11 +697,61 @@ for i in range(1, 5):
     fig_params.update_yaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", zeroline=False, row=i, col=1)
 
 fig_params.update_yaxes(range=[0, 24], dtick=4, row=4, col=1)
-fig_params.update_yaxes(type="log", showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", zeroline=False, range=[0, 6], row=5, col=1)
-fig_params.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", row=5, col=1)
+fig_params.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", row=4, col=1)
 
 st.plotly_chart(fig_params, use_container_width=True)
-if isro_unlocked:
+
+st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
+
+# ─── GSAT-19 GRASP Placeholder ────────────────────────────────────────────────
+st.markdown('<p class="section-label">GSAT-19 GRASP Payload (48°E Indian Sector) Local Plasma Telemetry</p>', unsafe_allow_html=True)
+
+isro_unlocked = st.sidebar.checkbox("Unlock Virtual GSAT-19 (48°E Indian Sector)", value=True)
+
+if not isro_unlocked:
+    fig_grasp = go.Figure()
+    fig_grasp.add_annotation(
+        x=0.5, y=0.5,
+        text="Awaiting ISRO ISSDC Secure API Authentication<br><span style='font-size:12px;color:#EF5350'>GRASP STREAM LOCKED (Unlock in Sidebar for Virtual Mode)</span>",
+        xref="paper", yref="paper",
+        showarrow=False,
+        font=dict(family="Space Mono", size=16, color="#B71C1C")
+    )
+    fig_grasp.update_layout(
+        height=180,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#0B0D11",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
+        margin=dict(l=0, r=0, t=0, b=0)
+    )
+    st.plotly_chart(fig_grasp, use_container_width=True)
+else:
+    goes_flux = df['flux'].values[-hist_n:]
+    ind_mlt = (mlt_hours + 8.2) % 24
+    goes_log = np.log10(np.maximum(goes_flux, 1.0))
+    kp_array = df['KP'].values[-hist_n:]
+    dawn_mask_ind = ((ind_mlt > 3) & (ind_mlt < 9)).astype(float)
+    dawn_mask_goes = ((mlt_hours > 3) & (mlt_hours < 9)).astype(float)
+    gsat_log = goes_log + 0.15 + (dawn_mask_ind - dawn_mask_goes) * (kp_array / 9.0) * 0.5
+    gsat_flux = 10**gsat_log
+    
+    fig_gsat = go.Figure()
+    fig_gsat.add_trace(go.Scatter(x=t_hist, y=goes_flux, name="Observed GOES (American Sector)", line=dict(color="#4FC3F7", width=1.5, dash="dot")))
+    fig_gsat.add_trace(go.Scatter(x=t_hist, y=gsat_flux, name="Virtual GSAT-19 (Indian Sector Interpolation)", line=dict(color="#00E676", width=2)))
+    
+    fig_gsat.update_layout(
+        height=300,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#0B0D11",
+        yaxis_type="log",
+        font=dict(family="Inter, sans-serif", size=10, color="#8AB4D4"),
+        margin=dict(l=40, r=20, t=10, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
+        yaxis=dict(title="Electron Flux [>2 MeV]", showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", range=[0, 6])
+    )
+    fig_gsat.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A")
+    st.plotly_chart(fig_gsat, use_container_width=True)
     st.caption("✔️ **Virtual Sector Interpolation Active**: Mathematically accounting for azimuthal wave power asymmetries (Dawn-side chorus acceleration) and South Atlantic Anomaly (SAA) pitch-angle scattering loss rates to simulate GSAT-19 physics over India.")
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
