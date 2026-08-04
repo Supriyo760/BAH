@@ -696,7 +696,10 @@ fig_params.update_layout(
 for i in range(1, 5):
     fig_params.update_yaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", zeroline=False, row=i, col=1)
 
-fig_params.update_yaxes(range=[0, 24], dtick=4, row=4, col=1)
+fig_params.update_yaxes(title_text="Field (nT)", row=1, col=1)
+fig_params.update_yaxes(title_text="Speed (km/s)", row=2, col=1)
+fig_params.update_yaxes(title_text="Value", row=3, col=1)
+fig_params.update_yaxes(title_text="Time (Hours)", range=[0, 24], dtick=4, row=4, col=1)
 fig_params.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", row=4, col=1)
 
 st.plotly_chart(fig_params, use_container_width=True)
@@ -748,7 +751,7 @@ else:
         font=dict(family="Inter, sans-serif", size=10, color="#8AB4D4"),
         margin=dict(l=40, r=20, t=10, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
-        yaxis=dict(title="Electron Flux [>2 MeV]", showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", range=[0, 6])
+        yaxis=dict(title="Flux (pfu) [>2 MeV]", showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", range=[0, 6])
     )
     fig_gsat.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A")
     st.plotly_chart(fig_gsat, use_container_width=True)
