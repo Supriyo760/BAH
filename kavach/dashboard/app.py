@@ -668,10 +668,10 @@ fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("BY_GSM", pd.Series(0, index=
 fig_params.add_trace(go.Scatter(x=t_hist, y=df["BZ_GSM"].values[-hist_n:], name="Bz (GSM)", line=dict(color="#FF5252", width=1.5)), row=1, col=1)
 
 # R2: Solar Wind Vx, Vy, Vz
-vsw = df["Vsw"].values[-hist_n:]
-fig_params.add_trace(go.Scatter(x=t_hist, y=-vsw, name="Vx (Approximated)", line=dict(color="#69F0AE", width=1.5)), row=2, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw), name="Vy", line=dict(color="#FFD740", dash="dash", width=1.5)), row=2, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw), name="Vz", line=dict(color="#E040FB", dash="dot", width=1.5)), row=2, col=1)
+vsw_arr = df["Vsw"].values[-hist_n:]
+fig_params.add_trace(go.Scatter(x=t_hist, y=-vsw_arr, name="Vx (Approximated)", line=dict(color="#69F0AE", width=1.5)), row=2, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw_arr), name="Vy", line=dict(color="#FFD740", dash="dash", width=1.5)), row=2, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw_arr), name="Vz", line=dict(color="#E040FB", dash="dot", width=1.5)), row=2, col=1)
 
 # R3: Psw, AE, DST
 psw = df.get("Pdyn", pd.Series(2.0, index=df.index)).values[-hist_n:]
