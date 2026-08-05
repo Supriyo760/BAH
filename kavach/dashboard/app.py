@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # ─── Google Fonts + NASA Eyes CSS ─────────────────────────────────────────────
-st.markdown("""<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"><style>html, body, [data-testid="stAppViewContainer"] { background-color: #070809 !important; color: #C8D6E5 !important; font-family: 'Inter', sans-serif; } [data-testid="stHeader"] { background: transparent !important; } [data-testid="stSidebar"] { background: #0B0D10 !important; border-right: 1px solid #1A2030 !important; } [data-testid="stSidebar"] * { color: #8A9BB0 !important; } [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #4FC3F7 !important; } [data-testid="stMetric"] { background: #0D1117; border: 1px solid #1C2A3A; border-top: 2px solid #1565C0; border-radius: 4px; padding: 16px 20px !important; } [data-testid="stMetricLabel"] { color: #4FC3F7 !important; font-size: 0.72rem !important; font-family: 'Space Mono', monospace !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; } [data-testid="stMetricValue"] { color: #E8F4FD !important; font-family: 'Space Mono', monospace !important; font-size: 1.4rem !important; } [data-testid="stMetricDelta"] { font-size: 0.75rem !important; } h2, h3 { color: #4FC3F7 !important; font-family: 'Inter', sans-serif !important; font-weight: 500 !important; letter-spacing: 0.04em; border-bottom: 1px solid #1A2A3A; padding-bottom: 6px; } .risk-red { background: rgba(183, 28, 28, 0.12); border: 1px solid #B71C1C; border-left: 3px solid #F44336; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-yellow { background: rgba(230, 119, 0, 0.10); border: 1px solid #E65100; border-left: 3px solid #FF9800; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-green { background: rgba(0, 77, 64, 0.15); border: 1px solid #004D40; border-left: 3px solid #00BFA5; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-label { font-family: 'Space Mono', monospace; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 6px 0; } .risk-value { font-family: 'Space Mono', monospace; font-size: 1.6rem; font-weight: 700; margin: 4px 0; } .risk-band { font-size: 0.78rem; color: #6B8299; margin: 4px 0 0 0; } .risk-msg { font-size: 0.80rem; color: #9AB0C4; margin: 8px 0 0 0; font-style: italic; } hr { border-color: #1A2A3A !important; } [data-testid="stInfo"] { background: #0D1622 !important; border: 1px solid #1C3050 !important; color: #8AB4D4 !important; border-radius: 4px !important; } [data-testid="stDataFrame"] { border: 1px solid #1A2A3A !important; border-radius: 4px !important; } [data-testid="stProgress"] > div > div { background: #1565C0 !important; } [data-testid="stButton"] > button { background: #0D2137 !important; border: 1px solid #1565C0 !important; color: #4FC3F7 !important; font-family: 'Space Mono', monospace !important; font-size: 0.8rem !important; border-radius: 3px !important; } [data-testid="stButton"] > button:hover { background: #1565C0 !important; color: #FFFFFF !important; } .nasa-title { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 1.9rem; color: #E8F4FD; letter-spacing: 0.06em; margin: 0; } .nasa-title span { color: #4FC3F7; font-weight: 600; } .nasa-subtitle { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: #3D5A70; letter-spacing: 0.1em; text-transform: uppercase; margin: 4px 0 0 0; } .section-label { font-family: 'Space Mono', monospace; font-size: 0.68rem; color: #3D7AB5; letter-spacing: 0.16em; text-transform: uppercase; margin: 0 0 14px 0; }</style>""", unsafe_allow_html=True)
+st.markdown("""<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"><style>html, body, [data-testid="stAppViewContainer"] { background-color: #F8FAFC !important; color: #1E293B !important; font-family: 'Inter', sans-serif; } [data-testid="stHeader"] { background: transparent !important; } [data-testid="stSidebar"] { background: #FFFFFF !important; border-right: 1px solid #E2E8F0 !important; } [data-testid="stSidebar"] * { color: #475569 !important; } [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #0284C7 !important; } [data-testid="stMetric"] { background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 3px solid #2563EB; border-radius: 4px; padding: 16px 20px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05); } [data-testid="stMetricLabel"] { color: #64748B !important; font-size: 0.72rem !important; font-family: 'Space Mono', monospace !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; } [data-testid="stMetricValue"] { color: #0F172A !important; font-family: 'Space Mono', monospace !important; font-size: 1.4rem !important; font-weight: 600 !important; } [data-testid="stMetricDelta"] { font-size: 0.75rem !important; } h2, h3 { color: #0F172A !important; font-family: 'Inter', sans-serif !important; font-weight: 600 !important; letter-spacing: 0.04em; border-bottom: 1px solid #E2E8F0; padding-bottom: 6px; } .risk-red { background: rgba(239, 68, 68, 0.1); border: 1px solid #FCA5A5; border-left: 4px solid #EF4444; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-yellow { background: rgba(245, 158, 11, 0.1); border: 1px solid #FCD34D; border-left: 4px solid #F59E0B; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-green { background: rgba(16, 185, 129, 0.1); border: 1px solid #6EE7B7; border-left: 4px solid #10B981; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-label { font-family: 'Space Mono', monospace; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 6px 0; color: #1E293B; font-weight: 700; } .risk-value { font-family: 'Space Mono', monospace; font-size: 1.6rem; font-weight: 700; margin: 4px 0; color: #0F172A; } .risk-band { font-size: 0.78rem; color: #475569; margin: 4px 0 0 0; } .risk-msg { font-size: 0.80rem; color: #64748B; margin: 8px 0 0 0; font-style: italic; } hr { border-color: #E2E8F0 !important; } [data-testid="stInfo"] { background: #F0F9FF !important; border: 1px solid #BAE6FD !important; color: #0369A1 !important; border-radius: 4px !important; } [data-testid="stDataFrame"] { border: 1px solid #E2E8F0 !important; border-radius: 4px !important; } [data-testid="stProgress"] > div > div { background: #2563EB !important; } [data-testid="stButton"] > button { background: #FFFFFF !important; border: 1px solid #CBD5E1 !important; color: #334155 !important; font-family: 'Space Mono', monospace !important; font-size: 0.8rem !important; border-radius: 4px !important; font-weight: 600 !important; } [data-testid="stButton"] > button:hover { background: #F8FAFC !important; border-color: #94A3B8 !important; } .nasa-title { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 1.9rem; color: #0F172A; letter-spacing: 0.06em; margin: 0; } .nasa-title span { color: #2563EB; font-weight: 700; } .nasa-subtitle { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: #64748B; letter-spacing: 0.1em; text-transform: uppercase; margin: 4px 0 0 0; } .section-label { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: #0284C7; letter-spacing: 0.16em; text-transform: uppercase; margin: 0 0 14px 0; font-weight: 700; }</style>""", unsafe_allow_html=True)
 
 # ─── Data Generator ───────────────────────────────────────────────────────────
 def generate_data(days=7, seed=42, end_time=None):
@@ -591,60 +591,60 @@ fig = go.Figure()
 fig.add_trace(go.Scatter(
     x=t_hist, y=f_hist,
     name="Observed  (GOES / GRASP)",
-    line=dict(color="#4FC3F7", width=2)
+    line=dict(color="#2563EB", width=2.5)
 ))
 fig.add_trace(go.Scatter(
     x=t_fut, y=10**tft_f_P50,
     name="TFT Engine  (P50)",
-    line=dict(color="#FFA726", width=2)
+    line=dict(color="#F59E0B", width=2.5)
 ))
 fig.add_trace(go.Scatter(
     x=t_fut, y=10**phy_f,
     name="Radial Diffusion  (Physics ODE)",
-    line=dict(color="#00BFA5", width=1.5, dash="dash")
+    line=dict(color="#059669", width=2, dash="dash")
 ))
 fig.add_trace(go.Scatter(
     x=t_fut, y=10**tft_f_P90,
     fill=None, showlegend=False,
-    line=dict(color="rgba(255,167,38,0)", width=0)
+    line=dict(color="rgba(245,158,11,0)", width=0)
 ))
 fig.add_trace(go.Scatter(
     x=t_fut, y=10**tft_f_P10,
     fill="tonexty",
-    fillcolor="rgba(255,167,38,0.08)",
+    fillcolor="rgba(245,158,11,0.25)",
     name="50% Quantile Band",
-    line=dict(color="rgba(255,167,38,0)", width=0)
+    line=dict(color="rgba(245,158,11,0)", width=0)
 ))
 fig.add_hline(
-    y=1e4, line_dash="dot", line_color="#B71C1C", line_width=1,
+    y=1e4, line_dash="dot", line_color="#DC2626", line_width=1.5,
     annotation_text="Anomaly Threshold (10⁴ pfu)",
-    annotation_font_color="#EF5350",
-    annotation_font_size=11,
+    annotation_font_color="#DC2626",
+    annotation_font_size=12,
     annotation_position="top right"
 )
 fig.update_layout(
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="#0B0D11",
-    font=dict(family="Inter, sans-serif", size=11, color="#8AB4D4"),
+    paper_bgcolor="#FFFFFF",
+    plot_bgcolor="#FFFFFF",
+    font=dict(family="Inter, sans-serif", size=13, color="#334155"),
     xaxis=dict(
         title="TIME (UTC)",
-        showgrid=True, gridcolor="#111820", gridwidth=1,
-        linecolor="#1C2A3A", tickcolor="#1C2A3A",
-        title_font=dict(size=10, color="#4FC3F7"),
+        showgrid=True, gridcolor="#E2E8F0", gridwidth=1,
+        linecolor="#CBD5E1", tickcolor="#CBD5E1",
+        title_font=dict(size=12, color="#0F172A"),
         zeroline=False
     ),
     yaxis=dict(
         type="log", title="ELECTRON FLUX  (>2 MeV) [pfu]",
-        showgrid=True, gridcolor="#111820", gridwidth=1,
-        linecolor="#1C2A3A", tickcolor="#1C2A3A",
-        title_font=dict(size=10, color="#4FC3F7"),
+        showgrid=True, gridcolor="#E2E8F0", gridwidth=1,
+        linecolor="#CBD5E1", tickcolor="#CBD5E1",
+        title_font=dict(size=12, color="#0F172A"),
         range=[0, 6], zeroline=False
     ),
     legend=dict(
         orientation="h", yanchor="bottom", y=1.04,
         xanchor="right", x=1,
-        bgcolor="rgba(0,0,0,0)",
-        font=dict(size=11, color="#8AB4D4")
+        bgcolor="rgba(255,255,255,0.7)",
+        font=dict(size=12, color="#0F172A")
     ),
     margin=dict(l=50, r=20, t=40, b=50),
     height=420
@@ -672,47 +672,47 @@ fig_params = make_subplots(
 )
 
 for annotation in fig_params['layout']['annotations']: 
-    annotation['font'] = dict(size=11, color="#3D7AB5", family="Space Mono")
+    annotation['font'] = dict(size=12, color="#2563EB", family="Space Mono")
 
 # R1: IMF Bx, By, Bz
-fig_params.add_trace(go.Scatter(x=t_hist, y=df["BX_GSM"].values[-hist_n:], name="Bx (GSM)", line=dict(color="#FFD54F", width=1.5)), row=1, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("BY_GSM", pd.Series(0, index=df.index)).values[-hist_n:], name="By (GSM)", line=dict(color="#448AFF", width=1.5)), row=1, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=df["BZ_GSM"].values[-hist_n:], name="Bz (GSM)", line=dict(color="#FF5252", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["BX_GSM"].values[-hist_n:], name="Bx (GSM)", line=dict(color="#F59E0B", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("BY_GSM", pd.Series(0, index=df.index)).values[-hist_n:], name="By (GSM)", line=dict(color="#2563EB", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["BZ_GSM"].values[-hist_n:], name="Bz (GSM)", line=dict(color="#DC2626", width=1.5)), row=1, col=1)
 
 # R2: Solar Wind Vx, Vy, Vz
 vsw_arr = df["Vsw"].values[-hist_n:]
-fig_params.add_trace(go.Scatter(x=t_hist, y=-vsw_arr, name="Vx (Approximated)", line=dict(color="#69F0AE", width=1.5)), row=2, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw_arr), name="Vy", line=dict(color="#FFD740", dash="dash", width=1.5)), row=2, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw_arr), name="Vz", line=dict(color="#E040FB", dash="dot", width=1.5)), row=2, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=-vsw_arr, name="Vx (Approximated)", line=dict(color="#059669", width=1.5)), row=2, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw_arr), name="Vy", line=dict(color="#D97706", dash="dash", width=1.5)), row=2, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw_arr), name="Vz", line=dict(color="#7C3AED", dash="dot", width=1.5)), row=2, col=1)
 
 # R3: Psw, AE, DST
 psw = df.get("Pdyn", pd.Series(2.0, index=df.index)).values[-hist_n:]
-fig_params.add_trace(go.Scatter(x=t_hist, y=psw * 10, name="Psw (x10) (nPa)", line=dict(color="#E040FB", width=1.5)), row=3, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("AE", pd.Series(100, index=df.index)).values[-hist_n:], name="AE (nT)", line=dict(color="#18FFFF", width=1.5)), row=3, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=df["DST"].values[-hist_n:], name="Dst (nT)", line=dict(color="#FF4081", width=1.5)), row=3, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=psw * 10, name="Psw (x10) (nPa)", line=dict(color="#7C3AED", width=1.5)), row=3, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("AE", pd.Series(100, index=df.index)).values[-hist_n:], name="AE (nT)", line=dict(color="#0284C7", width=1.5)), row=3, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["DST"].values[-hist_n:], name="Dst (nT)", line=dict(color="#E11D48", width=1.5)), row=3, col=1)
 
 # R4: MLT
 mlt_hours = (t_hist.hour + t_hist.minute/60.0 + 3.2) % 24
-fig_params.add_trace(go.Scatter(x=t_hist, y=mlt_hours, name="MLT (Hours)", line=dict(color="#FF9800", width=1.5)), row=4, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=mlt_hours, name="MLT (Hours)", line=dict(color="#EA580C", width=1.5)), row=4, col=1)
 
 fig_params.update_layout(
     height=720,
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="#0B0D11",
-    font=dict(family="Inter, sans-serif", size=10, color="#8AB4D4"),
+    paper_bgcolor="#FFFFFF",
+    plot_bgcolor="#FFFFFF",
+    font=dict(family="Inter, sans-serif", size=11, color="#334155"),
     margin=dict(l=40, r=20, t=30, b=30),
     showlegend=True,
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.7)"),
 )
 
 for i in range(1, 5):
-    fig_params.update_yaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", zeroline=False, row=i, col=1)
+    fig_params.update_yaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", zeroline=False, row=i, col=1)
 
 fig_params.update_yaxes(title_text="Field (nT)", row=1, col=1)
 fig_params.update_yaxes(title_text="Speed (km/s)", row=2, col=1)
 fig_params.update_yaxes(title_text="Value", row=3, col=1)
 fig_params.update_yaxes(title_text="Time (Hours)", range=[0, 24], dtick=4, row=4, col=1)
-fig_params.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", row=4, col=1)
+fig_params.update_xaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", row=4, col=1)
 
 st.plotly_chart(fig_params, use_container_width=True)
 
@@ -727,17 +727,17 @@ if not isro_unlocked:
     fig_grasp = go.Figure()
     fig_grasp.add_annotation(
         x=0.5, y=0.5,
-        text="Awaiting ISRO ISSDC Secure API Authentication<br><span style='font-size:12px;color:#EF5350'>GRASP STREAM LOCKED (Unlock in Sidebar for Virtual Mode)</span>",
+        text="Awaiting ISRO ISSDC Secure API Authentication<br><span style='font-size:12px;color:#DC2626'>GRASP STREAM LOCKED (Unlock in Sidebar for Virtual Mode)</span>",
         xref="paper", yref="paper",
         showarrow=False,
-        font=dict(family="Space Mono", size=16, color="#B71C1C")
+        font=dict(family="Space Mono", size=16, color="#DC2626")
     )
     fig_grasp.update_layout(
         height=180,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="#0B0D11",
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#1C2A3A"),
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#CBD5E1"),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#CBD5E1"),
         margin=dict(l=0, r=0, t=0, b=0)
     )
     st.plotly_chart(fig_grasp, use_container_width=True)
@@ -752,20 +752,20 @@ else:
     gsat_flux = 10**gsat_log
     
     fig_gsat = go.Figure()
-    fig_gsat.add_trace(go.Scatter(x=t_hist, y=goes_flux, name="Observed GOES (American Sector)", line=dict(color="#4FC3F7", width=1.5, dash="dot")))
-    fig_gsat.add_trace(go.Scatter(x=t_hist, y=gsat_flux, name="Virtual GSAT-19 (Indian Sector Interpolation)", line=dict(color="#00E676", width=2)))
+    fig_gsat.add_trace(go.Scatter(x=t_hist, y=goes_flux, name="Observed GOES (American Sector)", line=dict(color="#2563EB", width=1.5, dash="dot")))
+    fig_gsat.add_trace(go.Scatter(x=t_hist, y=gsat_flux, name="Virtual GSAT-19 (Indian Sector Interpolation)", line=dict(color="#059669", width=2.5)))
     
     fig_gsat.update_layout(
         height=300,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="#0B0D11",
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
         yaxis_type="log",
-        font=dict(family="Inter, sans-serif", size=10, color="#8AB4D4"),
+        font=dict(family="Inter, sans-serif", size=11, color="#334155"),
         margin=dict(l=40, r=20, t=10, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
-        yaxis=dict(title="Flux (pfu) [>2 MeV]", showgrid=True, gridcolor="#111820", linecolor="#1C2A3A", range=[0, 6])
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.7)"),
+        yaxis=dict(title="Flux (pfu) [>2 MeV]", showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", range=[0, 6])
     )
-    fig_gsat.update_xaxes(showgrid=True, gridcolor="#111820", linecolor="#1C2A3A")
+    fig_gsat.update_xaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1")
     st.plotly_chart(fig_gsat, use_container_width=True)
     st.caption("✔️ **Virtual Sector Interpolation Active**: Mathematically accounting for azimuthal wave power asymmetries (Dawn-side chorus acceleration) and South Atlantic Anomaly (SAA) pitch-angle scattering loss rates to simulate GSAT-19 physics over India.")
 
