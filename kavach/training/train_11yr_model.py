@@ -35,11 +35,20 @@ class ElevenYearSolarCycleDataset(Dataset):
         self.pred_len = pred_len
         self.stride = stride
         
+        # Mentor-approved strict 10-feature architecture
         feature_cols = [
-            "log_electron_flux", "Flow_Speed", "Bz_GSM", "Proton_Density", "Temperature", "Flow_Pressure",
-            "log_flux_t-1h", "log_flux_t-3h", "log_flux_t-24h"
+            "log_electron_flux", "BY_GSM", "BZ_GSM", "Pdyn", "Vsw", 
+            "AE", "DST", "F10.7_index", "MLT_sin", "MLT_cos"
         ]
         
+        # Ensure MLT columns exist in the dataset (Calculate if missing)
+        if "MLT_sin" not in df.columns:
+            # Assume GOES-16 baseline (-75W) for the 11-year archive
+            lon_offset = -75 / 15.0
+            mlt = (df.index.hour + df.index.minute / 60.0 + lon_offset) % 24
+            df['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
+            df['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
+            
         available_cols = [c for c in feature_cols if c in df.columns]
         data_matrix = df[available_cols].values.astype(np.float32)
         
