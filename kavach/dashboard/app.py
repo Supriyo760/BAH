@@ -248,7 +248,14 @@ def run_tft_inference(df, is_grasp=False):
             data_matrix = np.vstack([pad, data_matrix])
             
         if tft_scaler_instance is not None and isinstance(tft_scaler_instance, dict) and 'mean' in tft_scaler_instance and 'std' in tft_scaler_instance:
-            norm_x = (data_matrix - tft_scaler_instance['mean']) / tft_scaler_instance['std']
+            if tft_scaler_instance['mean'].shape[1] == data_matrix.shape[1]:
+                norm_x = (data_matrix - tft_scaler_instance['mean']) / tft_scaler_instance['std']
+            else:
+                mean = np.mean(data_matrix, axis=0, keepdims=True)
+                std = np.std(data_matrix, axis=0, keepdims=True) + 1e-7
+                mean[:, 0] = 0.0
+                std[:, 0] = 1.0
+                norm_x = (data_matrix - mean) / std
         else:
             # Fallback only
             mean = np.mean(data_matrix, axis=0, keepdims=True)
