@@ -39,9 +39,9 @@ def radial_diffusion_rhs(t: float, f: np.ndarray, L: np.ndarray, Kp: float) -> n
         
     return diff - f / tau
 
-def run_physics_forecast(current_log_flux, current_Kp, utc_hour, is_grasp=False):
+def run_physics_forecast(current_log_flux, current_Kp, max_kp_24h, utc_hour, is_grasp=False):
     """
-    Fast surrogate for 1D Radial Diffusion PDE.
+    Fast surrogate for 1D Radial Diffusion PDE + Wave-Particle Acceleration.
     Returns dictionary of predicted log_flux at T+30m, T+6h, T+12h.
     """
     # L-shell grid (Earth radii)
@@ -52,8 +52,13 @@ def run_physics_forecast(current_log_flux, current_Kp, utc_hour, is_grasp=False)
     
     # The RK45 numerical ODE solver for the 1D parabolic diffusion PDE is too slow/stiff for real-time Streamlit execution.
     # We bypass solve_ivp and use the fast analytical physics surrogate.
+    
+    # Chorus wave acceleration (Recovery Phase)
+    # If the storm is over (current_Kp is low) but max_kp_24h was high, electrons are strongly accelerated
+    recovery_drive = 0.12 * max(max_kp_24h - 4.0, 0.0) * max(3.5 - current_Kp, 0.0)
+    
     decay = 0.05
-    drive = 0.08 * max(current_Kp - 2.0, 0.0)
+    drive = 0.08 * max(current_Kp - 2.0, 0.0) + recovery_drive
     
     # Diurnal MLT correction (GSAT-19 at 48E -> UTC + 3.2 hrs, GOES-16 at 75W -> UTC - 5.0 hrs)
     # Peak flux at Noon (12), minimum at Midnight (0)

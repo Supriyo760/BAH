@@ -392,13 +392,16 @@ regime   = int(row["regime"])
 # Calculate current UTC hour for MLT physics injection
 utc_hour = float(df.index[-1].hour) + float(df.index[-1].minute) / 60.0
 
+# Calculate max Kp over the last 24 hours to give the physics model storm memory for recovery phase acceleration
+max_kp_24h = float(df['KP'].iloc[-288:].max()) if len(df) >= 288 else float(df['KP'].max())
+
 # Execute PyTorch TFT Model Inference if available
 is_grasp_selected = "GSAT-19" in target_satellite
 
 # Get baseline GOES prediction to calculate the systemic DC offset of the neural network
 goes_quantiles, _ = run_tft_inference(df, is_grasp=False)
 tft_quantiles, tft_attn = run_tft_inference(df, is_grasp=is_grasp_selected)
-phys = physics_forecast(log_flux, kp, utc_hour, is_grasp=is_grasp_selected)
+phys = physics_forecast(log_flux, kp, max_kp_24h, utc_hour, is_grasp=is_grasp_selected)
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
     # Use tighter PyTorch TFT inner quantiles (P25 and P75)
