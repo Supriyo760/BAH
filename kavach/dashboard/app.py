@@ -149,15 +149,16 @@ WEIGHTS_VERSION = "v9"  # bump to bust Streamlit @cache_resource
 @st.cache_resource
 def load_kavach_model(_version=WEIGHTS_VERSION):
     """Loads the PyTorch TFT weights and the global feature scaler."""
-    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'finetuned_gsat19_grasp_ulf.pth'))
-    scaler_path  = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler.pkl'))
+    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'tft_mentor_model.pth'))
+    scaler_path  = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler_mentor.pkl'))
     model = None
     scaler = None
     if os.path.exists(weights_path):
         try:
             import torch
             from kavach.models.tft_model import build_tft
-            model = build_tft(num_features=25, num_quantiles=5)
+            # Updated to strict 10-feature architecture requested by mentor
+            model = build_tft(num_features=10, num_quantiles=5)
             model.load_state_dict(torch.load(weights_path, map_location="cpu"))
             model.eval()
         except Exception:
@@ -187,47 +188,15 @@ def run_tft_inference(df, is_grasp=False):
         # FIX #3: Copy the dataframe so we do not mutate the global state in Replay mode
         df_copy = df.copy()
         df_copy['log_electron_flux'] = df_copy.get('log_flux', 0.0)
-        df_copy['Flow_Speed'] = df_copy.get('Vsw', 400.0)
-        df_copy['Bz_GSM'] = df_copy.get('BZ_GSM', 0.0)
-        df_copy['Proton_Density'] = df_copy.get('Np', 5.0)
-        df_copy['Temperature'] = 100000.0
-        df_copy['Flow_Pressure'] = df_copy.get('Pdyn', 2.0)
-        df_copy['ULF_Power'] = df_copy.get('ULF_power', -3.0)
+        df_copy['Vsw'] = df_copy.get('Vsw', 400.0)
+        df_copy['Pdyn'] = df_copy.get('Pdyn', 2.0)
         
         # New Raw / Math Features
-        df_copy['Bx_GSM'] = df_copy.get('BX_GSM', 0.0)
-        df_copy['By_GSM'] = df_copy.get('BY_GSM', 0.0)
-        df_copy['BT'] = df_copy.get('BT', 5.0)
+        df_copy['BY_GSM'] = df_copy.get('BY_GSM', 0.0)
+        df_copy['BZ_GSM'] = df_copy.get('BZ_GSM', 0.0)
         df_copy['F10.7_index'] = df_copy.get('F10.7_index', 70.0)
-        df_copy['KP'] = df_copy.get('KP', 2.0)
         df_copy['DST'] = df_copy.get('DST', -10.0)
         df_copy['AE'] = df_copy.get('AE', 100.0)
-        df_copy['Ec'] = df_copy.get('Ec', 0.0)
-        df_copy['Bz_neg_dur'] = df_copy.get('Bz_neg_dur', 0.0)
-        df_copy['dDst_dt'] = df_copy.get('dDst_dt', 0.0)
-        df_copy['AE_1h'] = df_copy.get('AE_1h', 100.0)
-        
-        # FIX: Compute missing lags dynamically if not present, and fill NaNs safely with baseline
-        baseline = df_copy['log_electron_flux'].iloc[0] if len(df_copy) > 0 else 2.0
-        
-        if 'flux_lag_1h' not in df_copy.columns or (df_copy['flux_lag_1h'] == 0).all():
-            df_copy['flux_lag_1h'] = df_copy['log_electron_flux'].shift(12)
-        if 'flux_lag_3h' not in df_copy.columns or (df_copy['flux_lag_3h'] == 0).all():
-            df_copy['flux_lag_3h'] = df_copy['log_electron_flux'].shift(36)
-        if 'flux_lag_24h' not in df_copy.columns or (df_copy['flux_lag_24h'] == 0).all():
-            df_copy['flux_lag_24h'] = df_copy['log_electron_flux'].shift(288)
-            
-        if 'flux_lag_6h' not in df_copy.columns or (df_copy['flux_lag_6h'] == 0).all():
-            df_copy['flux_lag_6h'] = df_copy['log_electron_flux'].shift(72)
-            
-        if 'flux_lag_12h' not in df_copy.columns or (df_copy['flux_lag_12h'] == 0).all():
-            df_copy['flux_lag_12h'] = df_copy['log_electron_flux'].shift(144)
-            
-        df_copy['log_flux_t-1h'] = df_copy['flux_lag_1h'].bfill().fillna(baseline)
-        df_copy['log_flux_t-3h'] = df_copy['flux_lag_3h'].bfill().fillna(baseline)
-        df_copy['log_flux_t-6h'] = df_copy['flux_lag_6h'].bfill().fillna(baseline)
-        df_copy['log_flux_t-12h'] = df_copy['flux_lag_12h'].bfill().fillna(baseline)
-        df_copy['log_flux_t-24h'] = df_copy['flux_lag_24h'].bfill().fillna(baseline)
         
         # We only need the last 24 hours (288 steps) for a single forecast
         df_copy = df_copy.iloc[-288:].copy()
@@ -238,13 +207,10 @@ def run_tft_inference(df, is_grasp=False):
         df_copy['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
         df_copy['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
-        # Feature selection matches training precisely
+        # Mentor-approved strict 10-feature architecture (Removed Kp and redundant proxies)
         feature_cols = [
-            "log_electron_flux", "Flow_Speed", "Bz_GSM", "Proton_Density", "Temperature", "Flow_Pressure",
-            "log_flux_t-1h", "log_flux_t-3h", "log_flux_t-24h", "ULF_Power",
-            "Bx_GSM", "By_GSM", "BT", "F10.7_index", "KP", "DST", "AE",
-            "Ec", "Bz_neg_dur", "dDst_dt", "AE_1h", "log_flux_t-6h", "log_flux_t-12h",
-            "MLT_sin", "MLT_cos"
+            "log_electron_flux", "BY_GSM", "BZ_GSM", "Pdyn", "Vsw", 
+            "AE", "DST", "F10.7_index", "MLT_sin", "MLT_cos"
         ]
         
         # Ensure all columns exist, fill missing with 0
