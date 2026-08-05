@@ -629,6 +629,15 @@ if is_benchmark:
         line=dict(color="#F59E0B", width=2.5)
     ))
 else:
+    if mode == "Historical Storm Replay" and 'df_full' in locals() and 'step' in locals():
+        df_fut_truth = df_full.iloc[step+1 : step+145]
+        if len(df_fut_truth) > 0:
+            fig.add_trace(go.Scatter(
+                x=df_fut_truth.index, y=df_fut_truth["flux"].values,
+                name="Actual Outcome (Ground Truth)",
+                line=dict(color="#2563EB", width=2, dash="dot")
+            ))
+            
     fig.add_trace(go.Scatter(
         x=t_fut, y=10**tft_f_P50,
         name="TFT Engine  (P50)",
