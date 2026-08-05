@@ -385,6 +385,18 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     raw_P25 = raw_P25 + anchor_offset
     raw_P75 = raw_P75 + anchor_offset
     
+    # --- AUTOREGRESSIVE MOMENTUM & PHYSICS BLENDING ---
+    # To prevent the AI from flatlining (mean-reverting too aggressively), we calculate the 
+    # derivative of the past 3 hours of flux and inject it as forward momentum, decaying over 12 hours.
+    recent_trend = log_flux - float(df['log_flux'].iloc[-36]) # 3-hour trend
+    momentum = np.linspace(0, recent_trend * 2.0, 144) * np.linspace(1.0, 0.0, 144)
+    
+    # Blend gently towards the 1D Radial Diffusion ODE physics target to prevent unphysical divergence
+    physics_target = phys["T+12h"]
+    drift = np.linspace(0, (physics_target - tft_f_P50[-1]) * 0.4, 144)
+    
+    tft_f_P50 = tft_f_P50 + momentum + drift
+    
     # Dynamic Quantile Band Width based on Geomagnetic Regime
     spread_multiplier = 0.2 + 0.8 * (kp / 9.0)  # Narrow when Kp is low, wide when Kp is high
     tft_f_P10 = tft_f_P50 - (tft_f_P50 - raw_P25) * spread_multiplier
