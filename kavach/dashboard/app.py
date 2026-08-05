@@ -362,8 +362,8 @@ regime   = int(row["regime"])
 # Calculate current UTC hour for MLT physics injection
 utc_hour = float(df.index[-1].hour) + float(df.index[-1].minute) / 60.0
 
-# Calculate max Kp over the last 24 hours to give the physics model storm memory for recovery phase acceleration
-max_kp_24h = float(df['KP'].iloc[-288:].max()) if len(df) >= 288 else float(df['KP'].max())
+# Calculate max Kp over the last 72 hours (3 days) to give the physics model long-term storm memory for recovery phase acceleration
+max_kp_72h = float(df['KP'].iloc[-864:].max()) if len(df) >= 864 else float(df['KP'].max())
 
 # Use 6-hour median to determine the true macro-state of the radiation belts, immune to narrow dropouts
 core_state = float(df['log_flux'].iloc[-72:].median()) if len(df) >= 72 else float(df['log_flux'].median())
@@ -374,7 +374,7 @@ is_grasp_selected = "GSAT-19" in target_satellite
 # Get baseline GOES prediction to calculate the systemic DC offset of the neural network
 goes_quantiles, _ = run_tft_inference(df, is_grasp=False)
 tft_quantiles, tft_attn = run_tft_inference(df, is_grasp=is_grasp_selected)
-phys = physics_forecast(core_state, kp, max_kp_24h, utc_hour, is_grasp=is_grasp_selected)
+phys = physics_forecast(core_state, kp, max_kp_72h, utc_hour, is_grasp=is_grasp_selected)
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
     # Use tighter PyTorch TFT inner quantiles (P25 and P75)
@@ -400,7 +400,7 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     
     # Base physics trust is 40%
     physics_weight = 0.4
-    if max_kp_24h > 5.0 and kp < 4.0:
+    if max_kp_72h > 5.0 and kp < 4.0:
         # We are in the recovery phase! The physics model is much more accurate here.
         physics_weight = 0.85
         

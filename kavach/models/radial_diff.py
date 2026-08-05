@@ -39,7 +39,7 @@ def radial_diffusion_rhs(t: float, f: np.ndarray, L: np.ndarray, Kp: float) -> n
         
     return diff - f / tau
 
-def run_physics_forecast(current_log_flux, current_Kp, max_kp_24h, utc_hour, is_grasp=False):
+def run_physics_forecast(current_log_flux, current_Kp, max_kp_72h, utc_hour, is_grasp=False):
     """
     Fast surrogate for 1D Radial Diffusion PDE + Wave-Particle Acceleration.
     Returns dictionary of predicted log_flux at T+30m, T+6h, T+12h.
@@ -54,8 +54,8 @@ def run_physics_forecast(current_log_flux, current_Kp, max_kp_24h, utc_hour, is_
     # We bypass solve_ivp and use the fast analytical physics surrogate.
     
     # Chorus wave acceleration (Recovery Phase)
-    # If the storm is over (current_Kp is low) but max_kp_24h was high, electrons are strongly accelerated
-    recovery_drive = 0.12 * max(max_kp_24h - 4.0, 0.0) * max(3.5 - current_Kp, 0.0)
+    # If the storm is over (current_Kp is low) but max_kp_72h was high, electrons are strongly accelerated over several days
+    recovery_drive = 0.12 * max(max_kp_72h - 4.0, 0.0) * max(3.5 - current_Kp, 0.0)
     
     decay = 0.05
     drive = 0.08 * max(current_Kp - 2.0, 0.0) + recovery_drive
