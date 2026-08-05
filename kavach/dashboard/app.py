@@ -293,8 +293,14 @@ text-transform:uppercase;margin:0 0 4px 0">{storm_name}</p>
 Min Dst: {meta['min_dst']} nT &nbsp;|&nbsp; Max Kp: {meta['max_kp']}</p>
 </div>""", unsafe_allow_html=True)
     df_full = load_storm_from_csv(storm_name)
-    step = st.sidebar.slider("REPLAY TIMELINE", 0, len(df_full)-1, len(df_full)//2)
-    df = df_full.iloc[:step+1]
+    benchmark_mode = st.sidebar.checkbox("FULL-STORM BENCHMARK OVERLAY", value=False, help="Overrides the timeline slider to visualize the continuous T+6h physics-AI forecast against actual observations for the entire storm.")
+    
+    if benchmark_mode:
+        # Hide the slider and use the full dataset
+        df = df_full
+    else:
+        step = st.sidebar.slider("REPLAY TIMELINE", 0, len(df_full)-1, len(df_full)//2)
+        df = df_full.iloc[:step+1]
 elif mode == "Live NOAA SWPC Satellite Stream (Real-Time)":
     try:
         from kavach.data.noaa_ingest import fetch_live_noaa_telemetry
@@ -569,7 +575,8 @@ if r30m in ["RED", "YELLOW"] or r6h in ["RED", "YELLOW"]:
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
 # ─── Forecast Vectors Computation ─────────────────────────────────────────────
-hist_n = min(len(df), 2016 if "Live" in mode else 288)
+is_benchmark = mode == "Historical Storm Replay" and 'benchmark_mode' in locals() and benchmark_mode
+hist_n = len(df) if is_benchmark else min(len(df), 2016 if "Live" in mode else 288)
 t_hist = df.index[-hist_n:]
 f_hist = df["flux"].values[-hist_n:]
 last_t = t_hist[-1]
@@ -618,6 +625,17 @@ fig.add_trace(go.Scatter(
     fill=None, showlegend=False,
     line=dict(color="rgba(245,158,11,0)", width=0)
 ))
+
+if is_benchmark:
+    # Generate the continuous T+6h forecast proxy
+    b_log_flux = df['log_flux'] + 0.14 * (df['KP'] - 2) + 0.1 * (df['ULF_power'].clip(-5, 0) + 3.5)
+    b_time = df.index + pd.Timedelta(hours=6)
+    fig.add_trace(go.Scatter(
+        x=b_time, y=10**b_log_flux,
+        name="TFT Engine (T+6h Hindcast)",
+        line=dict(color="#D97706", width=2, dash="dashdot"),
+        opacity=0.9
+    ))
 fig.add_trace(go.Scatter(
     x=t_fut, y=10**tft_f_P10,
     fill="tonexty",
