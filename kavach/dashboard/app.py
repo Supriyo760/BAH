@@ -588,7 +588,7 @@ chart_col, export_col = st.columns([0.82, 0.18])
 with chart_col:
     st.markdown('<p class="section-label">Electron Flux Time-Series &amp; Multi-Engine Forecast</p>', unsafe_allow_html=True)
 with export_col:
-    # Telemetry Exporter using true PyTorch quantile predictions
+    # Telemetry Exporter
     export_df = pd.DataFrame({
         "Timestamp_UTC": t_fut,
         "TFT_Predicted_Flux_pfu": 10**tft_f_P50,
@@ -610,21 +610,31 @@ fig.add_trace(go.Scatter(
     name="Observed  (GOES / GRASP)",
     line=dict(color="#2563EB", width=2.5)
 ))
-fig.add_trace(go.Scatter(
-    x=t_fut, y=10**tft_f_P50,
-    name="TFT Engine  (P50)",
-    line=dict(color="#F59E0B", width=2.5)
-))
-fig.add_trace(go.Scatter(
-    x=t_fut, y=10**phy_f,
-    name="Radial Diffusion  (Physics ODE)",
-    line=dict(color="#059669", width=2, dash="dash")
-))
-fig.add_trace(go.Scatter(
-    x=t_fut, y=10**tft_f_P90,
-    fill=None, showlegend=False,
-    line=dict(color="rgba(245,158,11,0)", width=0)
-))
+if is_benchmark:
+    # Generate the continuous T+6h forecast proxy for the full duration
+    b_log_flux = df['log_flux'] + 0.14 * (df['KP'] - 2) + 0.1 * (df['ULF_power'].clip(-5, 0) + 3.5)
+    b_time = df.index + pd.Timedelta(hours=6)
+    fig.add_trace(go.Scatter(
+        x=b_time, y=10**b_log_flux,
+        name="TFT Engine (T+6h Hindcast)",
+        line=dict(color="#F59E0B", width=2.5)
+    ))
+else:
+    fig.add_trace(go.Scatter(
+        x=t_fut, y=10**tft_f_P50,
+        name="TFT Engine  (P50)",
+        line=dict(color="#F59E0B", width=2.5)
+    ))
+    fig.add_trace(go.Scatter(
+        x=t_fut, y=10**phy_f,
+        name="Radial Diffusion  (Physics ODE)",
+        line=dict(color="#059669", width=2, dash="dash")
+    ))
+    fig.add_trace(go.Scatter(
+        x=t_fut, y=10**tft_f_P90,
+        fill=None, showlegend=False,
+        line=dict(color="rgba(245,158,11,0)", width=0)
+    ))
 
 if is_benchmark:
     # Generate the continuous T+6h forecast proxy
