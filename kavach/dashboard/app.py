@@ -754,7 +754,8 @@ fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("AE", pd.Series(100, index=df
 fig_params.add_trace(go.Scatter(x=t_hist, y=df["DST"].values[-hist_n:], name="Dst (nT)", line=dict(color="#E11D48", width=1.5)), row=3, col=1)
 
 # R4: MLT
-mlt_hours = (t_hist.hour + t_hist.minute/60.0 + 3.2) % 24
+hist_lon_offset = 48 / 15.0 if is_grasp_selected else -75 / 15.0
+mlt_hours = (t_hist.hour + t_hist.minute/60.0 + hist_lon_offset) % 24
 fig_params.add_trace(go.Scatter(x=t_hist, y=mlt_hours, name="MLT (Hours)", line=dict(color="#EA580C", width=1.5)), row=4, col=1)
 
 fig_params.update_layout(
