@@ -290,7 +290,7 @@ text-transform:uppercase;margin:0 0 4px 0">{storm_name}</p>
 Min Dst: {meta['min_dst']} nT &nbsp;|&nbsp; Max Kp: {meta['max_kp']}</p>
 </div>""", unsafe_allow_html=True)
     df_full = load_storm_from_csv(storm_name)
-    benchmark_mode = st.sidebar.checkbox("FULL-STORM BENCHMARK OVERLAY", value=False, help="Overrides the timeline slider to visualize the continuous T+6h physics-AI forecast against actual observations for the entire storm.")
+    benchmark_mode = st.sidebar.checkbox("FULL-STORM BENCHMARK OVERLAY", value=True, help="Overrides the timeline slider to visualize the continuous T+6h physics-AI forecast against actual observations for the entire storm.")
     
     if benchmark_mode:
         # Hide the slider and use the full dataset
