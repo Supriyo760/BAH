@@ -565,7 +565,7 @@ if len(df) > 12:
 else:
     delta_str = "Insufficient data for delta"
 
-c1.metric("LIVE FLUX  (>2 MeV)", f"{flux:.2e} pfu", delta_str)
+c1.metric("OBSERVED FLUX (GOES-16)", f"{flux:.2e} pfu", delta_str)
 c2.metric("REGIME STATE", REGIME_LABELS[regime], f"Kp = {kp:.1f} | Dst = {dst:.0f} nT")
 c3.metric("MODEL CONFIDENCE", f"{confidence:.0f}%",
           "Widened — Storm" if kp > 5 else "Stable")
