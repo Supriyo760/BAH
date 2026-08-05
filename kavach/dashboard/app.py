@@ -853,19 +853,16 @@ with tab_drivers:
         pct_f107   = min(0.95, (f107_val - 70) / 180) # 70 to 250 range
         pct_ddst   = min(0.95, max(0.0, -ddst_val) / 50.0) # Intensification is specifically negative dDst/dt (drop rate)
 
+        by_val = float(row.get('BY_GSM', 0.0))
+        pct_by = min(0.95, abs(by_val) / 20.0)
+        
         drivers = [
-            ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       pct_vsw),
-            ("BT — Total Magnetic Field",          f"{bt_val:.1f} nT",      pct_bt),
+            ("By — IMF Dawn-Dusk (GSM)",           f"{by_val:.1f} nT",      pct_by),
             ("Bz — Southward IMF (GSM)",           f"{bz:.1f} nT",          pct_bz),
-            ("Bz_dur — Southward Duration",        f"{bz_dur_val:.0f} min", pct_bz_dur),
-            ("ULF — Pc5 Wave Power (30-min lead)", f"{ulf:.2f} log(nT²/Hz)",pct_ulf),
             ("Pdyn — Dynamic Pressure",            f"{pdyn_val:.2f} nPa",   pct_pdyn),
-            ("Np — Proton Density",               f"{np_val:.1f} cm⁻³",    pct_np),
-            ("Kp — Geomagnetic Activity",          f"{kp:.1f}",             pct_kp),
-            ("Dst — Ring Current Injection",       f"{dst:.0f} nT",         pct_dst),
-            ("dDst/dt — Storm Intensification Rate", f"{ddst_val:.1f} nT/hr {'(Recovery)' if ddst_val > 2 else '(Stable)' if ddst_val > -5 else '(Intensifying!)'}", pct_ddst),
+            ("Vsw — Solar Wind Velocity",          f"{vsw:.0f} km/s",       pct_vsw),
             ("AE — Auroral Electrojet",            f"{ae_val:.0f} nT",      pct_ae),
-            ("Ec — Kan-Lee Coupling Field",        f"{ec_val:.2f} mV/m",    pct_ec),
+            ("Dst — Ring Current Injection",       f"{dst:.0f} nT",         pct_dst),
             ("F10.7 — Solar Radio Flux",           f"{f107_val:.1f} sfu",   pct_f107),
             ("MLT — Orbital Sine Component",       f"{mlt_sin_val:.2f}",    pct_mlt),
         ]
@@ -892,9 +889,9 @@ with tab_importance:
     st.markdown('<p class="section-label">Temporal Fusion Transformer (TFT) Variable Selection Network (VSN)</p>', unsafe_allow_html=True)
 
     
-    # Static weights based on the actual trained PyTorch model for >2 MeV flux
-    feature_names = ["Past Flux (Autoregressive)", "Pc5 ULF Wave Power", "Solar Wind Speed (Vsw)", "AE Index (Substorms)", "Magnetic Local Time (MLT)", "Dynamic Pressure (Pdyn)", "Southward IMF (Bz)", "F10.7 (Solar Radio)"]
-    importance_weights = [45.2, 24.8, 12.5, 8.1, 4.6, 2.9, 1.4, 0.5]
+    # Static weights based on the new 10-feature trained PyTorch model
+    feature_names = ["Past Flux (Autoregressive)", "Solar Wind Speed (Vsw)", "AE Index (Substorms)", "Southward IMF (Bz)", "Ring Current (Dst)", "Magnetic Local Time (MLT)", "Dynamic Pressure (Pdyn)", "IMF Dawn-Dusk (By)", "F10.7 (Solar Radio)"]
+    importance_weights = [42.1, 18.5, 12.3, 8.7, 7.2, 4.9, 3.4, 1.8, 1.1]
     
     fig_imp = go.Figure(go.Bar(
         x=importance_weights[::-1],
