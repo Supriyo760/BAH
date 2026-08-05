@@ -631,6 +631,7 @@ fig.update_layout(
         showgrid=True, gridcolor="#E2E8F0", gridwidth=1,
         linecolor="#CBD5E1", tickcolor="#CBD5E1",
         title_font=dict(size=13, color="#000000"),
+        tickfont=dict(size=12, color="#000000"),
         zeroline=False
     ),
     yaxis=dict(
@@ -638,6 +639,7 @@ fig.update_layout(
         showgrid=True, gridcolor="#E2E8F0", gridwidth=1,
         linecolor="#CBD5E1", tickcolor="#CBD5E1",
         title_font=dict(size=13, color="#000000"),
+        tickfont=dict(size=12, color="#000000"),
         range=[0, 6], zeroline=False
     ),
     legend=dict(
@@ -702,17 +704,17 @@ fig_params.update_layout(
     font=dict(family="Inter, sans-serif", size=12, color="#000000"),
     margin=dict(l=40, r=20, t=30, b=30),
     showlegend=True,
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.7)"),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)", font=dict(size=12, color="#000000")),
 )
 
 for i in range(1, 5):
-    fig_params.update_yaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", zeroline=False, row=i, col=1)
+    fig_params.update_yaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", zeroline=False, title_font=dict(color="#000000"), tickfont=dict(color="#000000"), row=i, col=1)
 
 fig_params.update_yaxes(title_text="Field (nT)", row=1, col=1)
 fig_params.update_yaxes(title_text="Speed (km/s)", row=2, col=1)
 fig_params.update_yaxes(title_text="Value", row=3, col=1)
 fig_params.update_yaxes(title_text="Time (Hours)", range=[0, 24], dtick=4, row=4, col=1)
-fig_params.update_xaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", row=4, col=1)
+fig_params.update_xaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", title_font=dict(color="#000000"), tickfont=dict(color="#000000"), row=4, col=1)
 
 st.plotly_chart(fig_params, use_container_width=True, theme=None)
 
@@ -762,10 +764,10 @@ else:
         yaxis_type="log",
         font=dict(family="Inter, sans-serif", size=12, color="#000000"),
         margin=dict(l=40, r=20, t=10, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.7)"),
-        yaxis=dict(title="Flux (pfu) [>2 MeV]", showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", range=[0, 6])
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)", font=dict(size=12, color="#000000")),
+        yaxis=dict(title="Flux (pfu) [>2 MeV]", showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", range=[0, 6], title_font=dict(color="#000000"), tickfont=dict(color="#000000"))
     )
-    fig_gsat.update_xaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1")
+    fig_gsat.update_xaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", title_font=dict(color="#000000"), tickfont=dict(color="#000000"))
     st.plotly_chart(fig_gsat, use_container_width=True, theme=None)
     st.caption("✔️ **Virtual Sector Interpolation Active**: Mathematically accounting for azimuthal wave power asymmetries (Dawn-side chorus acceleration) and South Atlantic Anomaly (SAA) pitch-angle scattering loss rates to simulate GSAT-19 physics over India.")
 
