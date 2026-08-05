@@ -388,15 +388,6 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     raw_P25 = raw_P25 + systemic_error
     raw_P75 = raw_P75 + systemic_error
     
-    # To maintain a visually seamless connection with the raw observed data, we inject the anomaly 
-    # of the exact last point, but decay it rapidly over ~1 hour using an exponential curve.
-    last_point_anomaly = log_flux - core_state
-    decay_curve = last_point_anomaly * np.exp(-np.arange(144) / 8.0)
-    
-    tft_f_P50 = tft_f_P50 + decay_curve
-    raw_P25 = raw_P25 + decay_curve
-    raw_P75 = raw_P75 + decay_curve
-    
     # --- AUTOREGRESSIVE MOMENTUM & PHYSICS BLENDING ---
     # Calculate physical momentum using robust averages (6h median now vs 6h median 12 hours ago)
     past_core_state = float(df['log_flux'].iloc[-144:-72].median()) if len(df) >= 144 else core_state
@@ -424,8 +415,8 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     ml_6h   = float(tft_f_P50[71])   # T+6h  = index 71
     ml_12h  = float(tft_f_P50[143])  # T+12h = index 143
 else:
-    # Base linear interpolation
-    base_f = np.linspace(log_flux, phys["T+12h"], 144)
+    # Base linear interpolation anchored to the robust 6-hour median macro-state
+    base_f = np.linspace(core_state, phys["T+12h"], 144)
     # Add realistic physics turbulence (sine waves + noise)
     turbulence = 0.15 * np.sin(np.linspace(0, 3*np.pi, 144)) + np.random.normal(0, 0.04, 144)
     tft_f_P50 = base_f + turbulence
