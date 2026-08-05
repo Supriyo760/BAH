@@ -549,39 +549,43 @@ c4.metric("ENGINE AGREEMENT", f"{mean_agree:.0f}%", "ML / Physics Fusion")
 st.markdown("<hr style='margin:20px 0'>", unsafe_allow_html=True)
 
 # ─── Risk Cards & Operator Protocol ──────────────────────────────────────────
-st.markdown('<p class="section-label">Multi-Horizon Probabilistic Risk Forecast</p>', unsafe_allow_html=True)
+show_forecast = not (mode == "Historical Storm Replay" and not benchmark_mode)
 
-RISK_COLORS = {"RED":"#F44336","YELLOW":"#FF9800","GREEN":"#00BFA5"}
-RISK_PREFIX = {"RED":"CRITICAL","YELLOW":"MODERATE","GREEN":"NOMINAL"}
+if show_forecast:
+    st.markdown('<p class="section-label">Multi-Horizon Probabilistic Risk Forecast</p>', unsafe_allow_html=True)
 
-def risk_card(col, horizon, tag, risk, fval, msg):
-    cls = {"RED":"risk-red","YELLOW":"risk-yellow","GREEN":"risk-green"}[risk]
-    col.markdown(f"""
-<div class="{cls}">
-  <p class="risk-label" style="color:{RISK_COLORS[risk]}">
-    [{RISK_PREFIX[risk]}] &nbsp; {horizon}</p>
-  <p class="risk-value" style="color:{RISK_COLORS[risk]}">{10**fval:.2e} <span style="font-size:0.9rem">pfu</span></p>
-  <p class="risk-band">50% Band: [{10**(fval-0.25):.1e} – {10**(fval+0.25):.1e}] pfu</p>
-  <p class="risk-msg">{risk} RISK — {msg}</p>
-</div>""", unsafe_allow_html=True)
+    RISK_COLORS = {"RED":"#F44336","YELLOW":"#FF9800","GREEN":"#00BFA5"}
+    RISK_PREFIX = {"RED":"CRITICAL","YELLOW":"MODERATE","GREEN":"NOMINAL"}
 
-r1, r2, r3 = st.columns(3)
-risk_card(r1, "T+30 MIN  ·  MANDATORY WARNING", "30m", r30m, f30m, msg30m)
-risk_card(r2, "T+6 HR  ·  MEDIUM-RANGE",        "6h",  r6h,  f6h,  msg6h)
-risk_card(r3, "T+12 HR  ·  EXTENDED OUTLOOK",   "12h", r12h, f12h, msg12h)
+    def risk_card(col, horizon, tag, risk, fval, msg):
+        cls = {"RED":"risk-red","YELLOW":"risk-yellow","GREEN":"risk-green"}[risk]
+        col.markdown(f"""
+    <div class="{cls}">
+      <p class="risk-label" style="color:{RISK_COLORS[risk]}">
+        [{RISK_PREFIX[risk]}] &nbsp; {horizon}</p>
+      <p class="risk-value" style="color:{RISK_COLORS[risk]}">{10**fval:.2e} <span style="font-size:0.9rem">pfu</span></p>
+      <p class="risk-band">50% Band: [{10**(fval-0.25):.1e} – {10**(fval+0.25):.1e}] pfu</p>
+      <p class="risk-msg">{risk} RISK — {msg}</p>
+    </div>""", unsafe_allow_html=True)
 
-if r30m in ["RED", "YELLOW"] or r6h in ["RED", "YELLOW"]:
-    with st.expander("ISRO Payload Safing & Anomaly Action Protocol (Click to expand)", expanded=True):
-        st.markdown(f"**Active Hazard Advisory Level:** `{r30m}` | Target Orbital Slot: GSAT-19 (48°E)")
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.checkbox("Step 1: Alert Flight Dynamics & Payload Operations Team", value=True)
-            st.checkbox("Step 2: Prepare high-voltage sensor payload for standby safing", value=(r30m == "RED"))
-        with col_b:
-            st.checkbox("Step 3: Verify redundant telemetry uplink channel status", value=True)
-            st.checkbox("Step 4: Execute solar panel orientation alignment to minimize cross-section", value=(r30m == "RED"))
+    r1, r2, r3 = st.columns(3)
+    risk_card(r1, "T+30 MIN  ·  MANDATORY WARNING", "30m", r30m, f30m, msg30m)
+    risk_card(r2, "T+6 HR  ·  MEDIUM-RANGE",        "6h",  r6h,  f6h,  msg6h)
+    risk_card(r3, "T+12 HR  ·  EXTENDED OUTLOOK",   "12h", r12h, f12h, msg12h)
 
-st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
+    if r30m in ["RED", "YELLOW"] or r6h in ["RED", "YELLOW"]:
+        with st.expander("ISRO Payload Safing & Anomaly Action Protocol (Click to expand)", expanded=True):
+            st.markdown(f"**Active Hazard Advisory Level:** `{r30m}` | Target Orbital Slot: GSAT-19 (48°E)")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.checkbox("Step 1: Alert Flight Dynamics & Payload Operations Team", value=True)
+                st.checkbox("Step 2: Prepare high-voltage sensor payload for standby safing", value=(r30m == "RED"))
+            with col_b:
+                st.checkbox("Step 3: Verify redundant telemetry uplink channel status", value=True)
+                st.checkbox("Step 4: Execute solar panel orientation alignment to minimize cross-section", value=(r30m == "RED"))
+
+    st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
+
 
 # ─── Forecast Vectors Computation ─────────────────────────────────────────────
 is_benchmark = mode == "Historical Storm Replay" and 'benchmark_mode' in locals() and benchmark_mode
@@ -629,7 +633,7 @@ if is_benchmark:
         line=dict(color="#F59E0B", width=2.5)
     ))
 else:
-    if mode == "Historical Storm Replay" and 'df_full' in locals() and 'step' in locals():
+    if mode == "Historical Storm Replay" and 'df_full' in locals() and 'step' in locals() and show_forecast:
         df_fut_truth = df_full.iloc[step+1 : step+145]
         if len(df_fut_truth) > 0:
             fig.add_trace(go.Scatter(
@@ -638,28 +642,29 @@ else:
                 line=dict(color="#2563EB", width=2, dash="dot")
             ))
             
-    fig.add_trace(go.Scatter(
-        x=t_fut, y=10**tft_f_P50,
-        name="TFT Engine  (P50)",
-        line=dict(color="#F59E0B", width=2.5)
-    ))
-    fig.add_trace(go.Scatter(
-        x=t_fut, y=10**phy_f,
-        name="Radial Diffusion  (Physics ODE)",
-        line=dict(color="#059669", width=2, dash="dash")
-    ))
-    fig.add_trace(go.Scatter(
-        x=t_fut, y=10**tft_f_P90,
-        fill=None, showlegend=False,
-        line=dict(color="rgba(245,158,11,0)", width=0)
-    ))
-    fig.add_trace(go.Scatter(
-        x=t_fut, y=10**tft_f_P10,
-        fill="tonexty",
-        fillcolor="rgba(245,158,11,0.25)",
-        name="50% Quantile Band",
-        line=dict(color="rgba(245,158,11,0)", width=0)
-    ))
+    if show_forecast:
+        fig.add_trace(go.Scatter(
+            x=t_fut, y=10**tft_f_P50,
+            name="TFT Engine  (P50)",
+            line=dict(color="#F59E0B", width=2.5)
+        ))
+        fig.add_trace(go.Scatter(
+            x=t_fut, y=10**phy_f,
+            name="Radial Diffusion  (Physics ODE)",
+            line=dict(color="#059669", width=2, dash="dash")
+        ))
+        fig.add_trace(go.Scatter(
+            x=t_fut, y=10**tft_f_P90,
+            fill=None, showlegend=False,
+            line=dict(color="rgba(245,158,11,0)", width=0)
+        ))
+        fig.add_trace(go.Scatter(
+            x=t_fut, y=10**tft_f_P10,
+            fill="tonexty",
+            fillcolor="rgba(245,158,11,0.25)",
+            name="50% Quantile Band",
+            line=dict(color="rgba(245,158,11,0)", width=0)
+        ))
 fig.add_hline(
     y=1e4, line_dash="dot", line_color="#DC2626", line_width=1.5,
     annotation_text="Anomaly Threshold (10⁴ pfu)",
