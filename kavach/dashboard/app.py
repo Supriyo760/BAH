@@ -839,12 +839,7 @@ with tab_drivers:
 
 with tab_importance:
     st.markdown('<p class="section-label">Temporal Fusion Transformer (TFT) Variable Selection Network (VSN)</p>', unsafe_allow_html=True)
-    st.markdown("""
-    **Is this too many features?** No. 
-    The KAVACH architecture mathematically mimics the **Fokker-Planck Radial Diffusion Equation**. Solar wind ($V_{sw}$, $B_z$) provides the initial kinetic impact, causing substorm injections (AE index), which generate the ULF waves (Pc5) that actually accelerate the electrons.
-    
-    Because the TFT contains a dynamic **Variable Selection Network (VSN)**, it inherently filters out noise and prevents overfitting by assigning near-zero weights to irrelevant features during different storm phases.
-    """)
+
     
     # Static weights based on the actual trained PyTorch model for >2 MeV flux
     feature_names = ["Past Flux (Autoregressive)", "Pc5 ULF Wave Power", "Solar Wind Speed (Vsw)", "AE Index (Substorms)", "Magnetic Local Time (MLT)", "Dynamic Pressure (Pdyn)", "Southward IMF (Bz)", "F10.7 (Solar Radio)"]
