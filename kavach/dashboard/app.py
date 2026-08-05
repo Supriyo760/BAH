@@ -649,7 +649,7 @@ fig.update_layout(
     margin=dict(l=50, r=20, t=40, b=50),
     height=420
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, theme=None)
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
@@ -714,7 +714,7 @@ fig_params.update_yaxes(title_text="Value", row=3, col=1)
 fig_params.update_yaxes(title_text="Time (Hours)", range=[0, 24], dtick=4, row=4, col=1)
 fig_params.update_xaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", row=4, col=1)
 
-st.plotly_chart(fig_params, use_container_width=True)
+st.plotly_chart(fig_params, use_container_width=True, theme=None)
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
@@ -740,7 +740,7 @@ if not isro_unlocked:
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, linecolor="#CBD5E1"),
         margin=dict(l=0, r=0, t=0, b=0)
     )
-    st.plotly_chart(fig_grasp, use_container_width=True)
+    st.plotly_chart(fig_grasp, use_container_width=True, theme=None)
 else:
     goes_flux = df['flux'].values[-hist_n:]
     ind_mlt = (mlt_hours + 8.2) % 24
@@ -766,7 +766,7 @@ else:
         yaxis=dict(title="Flux (pfu) [>2 MeV]", showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", range=[0, 6])
     )
     fig_gsat.update_xaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1")
-    st.plotly_chart(fig_gsat, use_container_width=True)
+    st.plotly_chart(fig_gsat, use_container_width=True, theme=None)
     st.caption("✔️ **Virtual Sector Interpolation Active**: Mathematically accounting for azimuthal wave power asymmetries (Dawn-side chorus acceleration) and South Atlantic Anomaly (SAA) pitch-angle scattering loss rates to simulate GSAT-19 physics over India.")
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
