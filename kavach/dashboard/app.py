@@ -415,8 +415,14 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     
     # Dynamic Quantile Band Width based on Geomagnetic Regime
     spread_multiplier = 0.2 + 0.8 * (kp / 9.0)  # Narrow when Kp is low, wide when Kp is high
-    tft_f_P10 = tft_f_P50 - (tft_f_P50 - raw_P25) * spread_multiplier
-    tft_f_P90 = tft_f_P50 + (raw_P75 - tft_f_P50) * spread_multiplier
+    
+    # Calculate the true mathematical uncertainty width from the original PyTorch model
+    lower_width = (tft_quantiles[:, 2] - tft_quantiles[:, 1]) * spread_multiplier
+    upper_width = (tft_quantiles[:, 3] - tft_quantiles[:, 2]) * spread_multiplier
+    
+    # Wrap the bands perfectly around our final physics-adjusted median trajectory
+    tft_f_P10 = tft_f_P50 - lower_width
+    tft_f_P90 = tft_f_P50 + upper_width
     
     ml_30m  = float(tft_f_P50[5])    # T+30m = index 5
     ml_6h   = float(tft_f_P50[71])   # T+6h  = index 71
