@@ -187,7 +187,11 @@ def run_tft_inference(df, is_grasp=False):
         import torch
         # FIX #3: Copy the dataframe so we do not mutate the global state in Replay mode
         df_copy = df.copy()
-        df_copy['log_electron_flux'] = df_copy.get('log_flux', 0.0)
+        # Apply a 2-hour rolling median to the input sequence to erase high-frequency instrumental dropouts.
+        # This guarantees the LSTM only reacts to true macro-physical changes in the radiation belt, not noise.
+        raw_log_flux = df_copy.get('log_flux', pd.Series(0.0, index=df_copy.index))
+        df_copy['log_electron_flux'] = raw_log_flux.rolling(window=24, min_periods=1, center=False).median()
+        
         df_copy['Vsw'] = df_copy.get('Vsw', 400.0)
         df_copy['Pdyn'] = df_copy.get('Pdyn', 2.0)
         
