@@ -376,20 +376,30 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     tft_f_P50 = tft_quantiles[:, 2]  # Median forecast
     raw_P75 = tft_quantiles[:, 3]
     
-    # --- OPERATIONAL FORECAST ANCHORING (BIAS CORRECTION) ---
-    # Neural Networks do not inherently enforce y_pred[0] == y_true[-1].
-    # We apply a constant bias shift so the yellow forecast line connects seamlessly
-    # to the blue observed line, preserving the AI's exact trend and MLT oscillations.
-    anchor_offset = log_flux - tft_f_P50[0]
-    tft_f_P50 = tft_f_P50 + anchor_offset
-    raw_P25 = raw_P25 + anchor_offset
-    raw_P75 = raw_P75 + anchor_offset
+    # --- OPERATIONAL FORECAST ANCHORING (NOISE-RESISTANT) ---
+    # Instead of permanently dragging the entire 12h forecast down/up due to a single noisy last observation,
+    # we anchor the core forecast to a robust 1-hour moving average of recent flux.
+    recent_1h_avg = float(df['log_flux'].iloc[-12:].mean())
+    base_anchor_offset = recent_1h_avg - tft_f_P50[0]
+    
+    tft_f_P50 = tft_f_P50 + base_anchor_offset
+    raw_P25 = raw_P25 + base_anchor_offset
+    raw_P75 = raw_P75 + base_anchor_offset
+    
+    # To maintain a visually seamless connection with the raw observed data, we inject the anomaly 
+    # of the exact last point, but decay it rapidly over ~1 hour using an exponential curve.
+    last_point_anomaly = log_flux - recent_1h_avg
+    decay_curve = last_point_anomaly * np.exp(-np.arange(144) / 8.0)
+    
+    tft_f_P50 = tft_f_P50 + decay_curve
+    raw_P25 = raw_P25 + decay_curve
+    raw_P75 = raw_P75 + decay_curve
     
     # --- AUTOREGRESSIVE MOMENTUM & PHYSICS BLENDING ---
-    # To prevent the AI from flatlining (mean-reverting too aggressively), we calculate the 
-    # derivative of the past 3 hours of flux and inject it as forward momentum, decaying over 12 hours.
-    recent_trend = log_flux - float(df['log_flux'].iloc[-36]) # 3-hour trend
-    momentum = np.linspace(0, recent_trend * 2.0, 144) * np.linspace(1.0, 0.0, 144)
+    # Calculate physical momentum using robust averages (1h avg now vs 1h avg 3 hours ago)
+    past_1h_avg = float(df['log_flux'].iloc[-48:-36].mean()) if len(df) >= 48 else recent_1h_avg
+    robust_trend = recent_1h_avg - past_1h_avg
+    momentum = np.linspace(0, robust_trend * 2.5, 144) * np.linspace(1.0, 0.0, 144)
     
     # Blend gently towards the 1D Radial Diffusion ODE physics target to prevent unphysical divergence
     physics_target = phys["T+12h"]
