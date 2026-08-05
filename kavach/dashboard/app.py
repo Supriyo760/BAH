@@ -171,12 +171,13 @@ def load_kavach_model(_version=WEIGHTS_VERSION):
 
 tft_model_instance, tft_scaler_instance = load_kavach_model(WEIGHTS_VERSION)
 
-def run_tft_inference(model, scaler, df):
+@st.cache_data(show_spinner=False, ttl=60)
+def run_tft_inference(df, is_grasp=False):
     """
     Executes real PyTorch TFT multi-horizon quantile inference on input DataFrame.
     Returns array of shape [144, 5] representing [P10, P25, P50, P75, P90] over 12 hours.
     """
-    if model is None:
+    if tft_model_instance is None:
         return None, None
     try:
         import torch
@@ -225,8 +226,11 @@ def run_tft_inference(model, scaler, df):
         df_copy['log_flux_t-12h'] = df_copy['flux_lag_12h'].bfill().fillna(baseline)
         df_copy['log_flux_t-24h'] = df_copy['flux_lag_24h'].bfill().fillna(baseline)
         
-        # MLT Embeddings
-        mlt = (df_copy.index.hour + df_copy.index.minute / 60.0 - 75 / 15.0) % 24
+        # MLT Embeddings (Zero-Shot Spatial Translation)
+        # If inferencing for GRASP, we inject the GSAT-19 longitude (+48°E) to shift the model geographically.
+        # Otherwise, we default to the GOES-16 longitude (-75°W) the model was originally trained on.
+        lon_offset = 48 / 15.0 if is_grasp else -75 / 15.0
+        mlt = (df_copy.index.hour + df_copy.index.minute / 60.0 + lon_offset) % 24
         df_copy['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
         df_copy['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
@@ -243,8 +247,8 @@ def run_tft_inference(model, scaler, df):
             pad = np.tile(data_matrix[0:1], (288 - len(data_matrix), 1))
             data_matrix = np.vstack([pad, data_matrix])
             
-        if scaler is not None and isinstance(scaler, dict) and 'mean' in scaler and 'std' in scaler:
-            norm_x = (data_matrix - scaler['mean']) / scaler['std']
+        if tft_scaler_instance is not None and isinstance(tft_scaler_instance, dict) and 'mean' in tft_scaler_instance and 'std' in tft_scaler_instance:
+            norm_x = (data_matrix - tft_scaler_instance['mean']) / tft_scaler_instance['std']
         else:
             # Fallback only
             mean = np.mean(data_matrix, axis=0, keepdims=True)
@@ -256,8 +260,8 @@ def run_tft_inference(model, scaler, df):
         x_tensor = torch.tensor(norm_x, dtype=torch.float32).unsqueeze(0)
 
         with torch.no_grad():
-            q_preds, _ = model(x_tensor)
-            attn_scores = torch.softmax(model.vsn_weights(x_tensor.mean(dim=1)), dim=-1).squeeze(0).cpu().numpy()
+            q_preds, _ = tft_model_instance(x_tensor)
+            attn_scores = torch.softmax(tft_model_instance.vsn_weights(x_tensor.mean(dim=1)), dim=-1).squeeze(0).cpu().numpy()
 
         return q_preds.squeeze(0).cpu().numpy(), attn_scores
     except Exception as e:
@@ -277,7 +281,8 @@ font-weight:600;margin:0 0 16px 0">MISSION CONTROL</p>
 
 mode = st.sidebar.radio("DATA STREAM", [
     "Live NOAA SWPC Satellite Stream (Real-Time)",
-    "Historical Storm Replay"
+    "Historical Storm Replay",
+    "GSAT-19 GRASP Sector"
 ])
 
 if mode == "Historical Storm Replay":
@@ -370,11 +375,8 @@ regime   = int(row["regime"])
 utc_hour = float(df.index[-1].hour) + float(df.index[-1].minute) / 60.0
 
 # Execute PyTorch TFT Model Inference if available
-tft_res = run_tft_inference(tft_model_instance, tft_scaler_instance, df)
+tft_quantiles, tft_attn = run_tft_inference(df, is_grasp=(mode == "GSAT-19 GRASP Sector"))
 phys = physics_forecast(log_flux, kp, utc_hour)
-
-tft_quantiles = tft_res[0] if tft_res[0] is not None else None
-tft_attn = tft_res[1] if tft_res[0] is not None else None
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
     # Use tighter PyTorch TFT inner quantiles (P25 and P75)
