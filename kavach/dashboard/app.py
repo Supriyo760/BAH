@@ -392,17 +392,21 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     raw_P25 = raw_P25 + systemic_error
     raw_P75 = raw_P75 + systemic_error
     
-    # --- AUTOREGRESSIVE MOMENTUM & PHYSICS BLENDING ---
-    # Calculate physical momentum using robust averages (6h median now vs 6h median 12 hours ago)
-    past_core_state = float(df['log_flux'].iloc[-144:-72].median()) if len(df) >= 144 else core_state
-    robust_trend = core_state - past_core_state
-    momentum = np.linspace(0, robust_trend * 2.5, 144) * np.linspace(1.0, 0.0, 144)
-    
-    # Blend gently towards the 1D Radial Diffusion ODE physics target to prevent unphysical divergence
+    # --- DYNAMIC PHYSICS FUSION ---
+    # The 10-feature AI model occasionally underestimates wave-particle acceleration during 
+    # the post-storm recovery phase because it lacks explicit long-term Kp memory.
+    # We dynamically increase the trust in the 1D Radial Diffusion ODE during recovery!
     physics_target = phys["T+12h"]
-    drift = np.linspace(0, (physics_target - tft_f_P50[-1]) * 0.4, 144)
     
-    tft_f_P50 = tft_f_P50 + momentum + drift
+    # Base physics trust is 40%
+    physics_weight = 0.4
+    if max_kp_24h > 5.0 and kp < 4.0:
+        # We are in the recovery phase! The physics model is much more accurate here.
+        physics_weight = 0.85
+        
+    drift = np.linspace(0, (physics_target - tft_f_P50[-1]) * physics_weight, 144)
+    
+    tft_f_P50 = tft_f_P50 + drift
     
     # --- DYNAMIC QUANTILE BAND ---
     # Instead of relying on raw uncalibrated ML quantiles, we enforce a symmetric, physics-based 
