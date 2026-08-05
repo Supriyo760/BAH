@@ -635,24 +635,13 @@ else:
         fill=None, showlegend=False,
         line=dict(color="rgba(245,158,11,0)", width=0)
     ))
-
-if is_benchmark:
-    # Generate the continuous T+6h forecast proxy
-    b_log_flux = df['log_flux'] + 0.14 * (df['KP'] - 2) + 0.1 * (df['ULF_power'].clip(-5, 0) + 3.5)
-    b_time = df.index + pd.Timedelta(hours=6)
     fig.add_trace(go.Scatter(
-        x=b_time, y=10**b_log_flux,
-        name="TFT Engine (T+6h Hindcast)",
-        line=dict(color="#D97706", width=2, dash="dashdot"),
-        opacity=0.9
+        x=t_fut, y=10**tft_f_P10,
+        fill="tonexty",
+        fillcolor="rgba(245,158,11,0.25)",
+        name="50% Quantile Band",
+        line=dict(color="rgba(245,158,11,0)", width=0)
     ))
-fig.add_trace(go.Scatter(
-    x=t_fut, y=10**tft_f_P10,
-    fill="tonexty",
-    fillcolor="rgba(245,158,11,0.25)",
-    name="50% Quantile Band",
-    line=dict(color="rgba(245,158,11,0)", width=0)
-))
 fig.add_hline(
     y=1e4, line_dash="dot", line_color="#DC2626", line_width=1.5,
     annotation_text="Anomaly Threshold (10⁴ pfu)",
