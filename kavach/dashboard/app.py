@@ -239,19 +239,20 @@ def run_tft_inference(df, is_grasp=False):
         df_copy['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
         # Feature selection matches training precisely
-        features = [
-            'log_flux', 'KP', 'DST', 'F10.7', 'F10.7_45d', 'AL', 'AU', 'SYM-H',
-            'B_Z_GSE', 'B_Y_GSE', 'Vx', 'Vy', 'Vz', 'T', 'Np', 'Pdyn',
-            'PCN', 'SME', 'Vsw', 'AE', 'beta', 'Mach_num', 'Lshell',
-            'MLT_sin', 'MLT_cos'
+        feature_cols = [
+            "log_electron_flux", "Flow_Speed", "Bz_GSM", "Proton_Density", "Temperature", "Flow_Pressure",
+            "log_flux_t-1h", "log_flux_t-3h", "log_flux_t-24h", "ULF_Power",
+            "Bx_GSM", "By_GSM", "BT", "F10.7_index", "KP", "DST", "AE",
+            "Ec", "Bz_neg_dur", "dDst_dt", "AE_1h", "log_flux_t-6h", "log_flux_t-12h",
+            "MLT_sin", "MLT_cos"
         ]
         
         # Ensure all columns exist, fill missing with 0
-        for f in features:
+        for f in feature_cols:
             if f not in df_copy.columns:
                 df_copy[f] = 0.0
 
-        data_matrix = df_copy[features].values
+        data_matrix = df_copy[feature_cols].values
         
         if tft_scaler_instance is not None and isinstance(tft_scaler_instance, dict) and 'mean' in tft_scaler_instance and 'std' in tft_scaler_instance:
             if tft_scaler_instance['mean'].shape[1] == data_matrix.shape[1]:
