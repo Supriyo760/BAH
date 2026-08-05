@@ -565,7 +565,14 @@ if len(df) > 12:
 else:
     delta_str = "Insufficient data for delta"
 
-c1.metric("OBSERVED FLUX (GOES-16)", f"{flux:.2e} pfu", delta_str)
+if is_grasp_selected and tft_f_P50 is not None:
+    live_flux_val = 10**tft_f_P50[0]
+    live_label = "ESTIMATED FLUX (GSAT-19)"
+else:
+    live_flux_val = flux
+    live_label = "OBSERVED FLUX (GOES-16)"
+
+c1.metric(live_label, f"{live_flux_val:.2e} pfu", delta_str)
 c2.metric("REGIME STATE", REGIME_LABELS[regime], f"Kp = {kp:.1f} | Dst = {dst:.0f} nT")
 c3.metric("MODEL CONFIDENCE", f"{confidence:.0f}%",
           "Widened — Storm" if kp > 5 else "Stable")
