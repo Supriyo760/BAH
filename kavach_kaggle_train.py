@@ -354,7 +354,7 @@ X_val_t  = torch.tensor(X_val,  dtype=torch.float32)
 y_val_t  = torch.tensor(y_val,  dtype=torch.float32)
 
 # ─── STAGE 1: Pre-train on 11-year OMNI ──────────────────────────────────────
-model = KAVACH_TFT(num_features=25, hidden_size=128, lstm_layers=2, num_quantiles=5).to(DEVICE)
+model = KAVACH_TFT(num_features=10, hidden_size=128, lstm_layers=2, num_quantiles=5).to(DEVICE)
 model = train_stage(model, X_pre_t, y_pre_t, epochs=15, lr=3e-4, batch_size=64, label="STAGE-1 PRE-TRAIN")
 evaluate(model, X_val_t, y_val_t)
 
