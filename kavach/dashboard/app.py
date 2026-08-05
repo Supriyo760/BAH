@@ -295,10 +295,13 @@ mode = st.sidebar.radio("DATA STREAM", [
 ])
 
 st.sidebar.markdown("---")
-target_satellite = st.sidebar.radio("TARGET SATELLITE (MLT SECTOR)", [
-    "GOES-16 (75°W / Americas)",
-    "GSAT-19 (48°E / India GRASP)"
-], help="Zero-Shot Spatial Translation: Shifts the prediction's Magnetic Local Time (MLT) footprint to simulate fluxes at a different orbital longitude.")
+if mode == "Live NOAA SWPC Satellite Stream (Real-Time)":
+    target_satellite = st.sidebar.radio("TARGET SATELLITE (MLT SECTOR)", [
+        "GOES-16 (75°W / Americas)",
+        "GSAT-19 (48°E / India GRASP)"
+    ], help="Zero-Shot Spatial Translation: Shifts the prediction's Magnetic Local Time (MLT) footprint to simulate fluxes at a different orbital longitude.")
+else:
+    target_satellite = "GOES-16 (75°W / Americas)"
 
 if mode == "Historical Storm Replay":
     storm_name = st.sidebar.selectbox("SELECT STORM EVENT", list(STORM_META.keys()))
