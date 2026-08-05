@@ -395,13 +395,16 @@ utc_hour = float(df.index[-1].hour) + float(df.index[-1].minute) / 60.0
 # Calculate max Kp over the last 24 hours to give the physics model storm memory for recovery phase acceleration
 max_kp_24h = float(df['KP'].iloc[-288:].max()) if len(df) >= 288 else float(df['KP'].max())
 
+# Use 6-hour median to determine the true macro-state of the radiation belts, immune to narrow dropouts
+core_state = float(df['log_flux'].iloc[-72:].median()) if len(df) >= 72 else float(df['log_flux'].median())
+
 # Execute PyTorch TFT Model Inference if available
 is_grasp_selected = "GSAT-19" in target_satellite
 
 # Get baseline GOES prediction to calculate the systemic DC offset of the neural network
 goes_quantiles, _ = run_tft_inference(df, is_grasp=False)
 tft_quantiles, tft_attn = run_tft_inference(df, is_grasp=is_grasp_selected)
-phys = physics_forecast(log_flux, kp, max_kp_24h, utc_hour, is_grasp=is_grasp_selected)
+phys = physics_forecast(core_state, kp, max_kp_24h, utc_hour, is_grasp=is_grasp_selected)
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
     # Use tighter PyTorch TFT inner quantiles (P25 and P75)
@@ -411,13 +414,9 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     
     # --- OPERATIONAL FORECAST ANCHORING (NOISE-RESISTANT) ---
     # Instead of permanently dragging the entire 12h forecast down/up due to a single noisy last observation,
-    # we anchor the core forecast to a robust 1-hour moving average of recent flux.
-    recent_1h_avg = float(df['log_flux'].iloc[-12:].mean())
-    
-    # Instead of anchoring GRASP to the GOES observed flux (which erases the MLT difference),
-    # we anchor using the systemic error of the GOES prediction!
+    # or a 1-hour window that might contain a dropout, we anchor the core forecast to the robust 6-hour median!
     goes_P50 = goes_quantiles[:, 2]
-    systemic_error = recent_1h_avg - goes_P50[0]
+    systemic_error = core_state - goes_P50[0]
     
     tft_f_P50 = tft_f_P50 + systemic_error
     raw_P25 = raw_P25 + systemic_error
@@ -425,7 +424,7 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     
     # To maintain a visually seamless connection with the raw observed data, we inject the anomaly 
     # of the exact last point, but decay it rapidly over ~1 hour using an exponential curve.
-    last_point_anomaly = log_flux - recent_1h_avg
+    last_point_anomaly = log_flux - core_state
     decay_curve = last_point_anomaly * np.exp(-np.arange(144) / 8.0)
     
     tft_f_P50 = tft_f_P50 + decay_curve
@@ -433,9 +432,9 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     raw_P75 = raw_P75 + decay_curve
     
     # --- AUTOREGRESSIVE MOMENTUM & PHYSICS BLENDING ---
-    # Calculate physical momentum using robust averages (1h avg now vs 1h avg 3 hours ago)
-    past_1h_avg = float(df['log_flux'].iloc[-48:-36].mean()) if len(df) >= 48 else recent_1h_avg
-    robust_trend = recent_1h_avg - past_1h_avg
+    # Calculate physical momentum using robust averages (6h median now vs 6h median 12 hours ago)
+    past_core_state = float(df['log_flux'].iloc[-144:-72].median()) if len(df) >= 144 else core_state
+    robust_trend = core_state - past_core_state
     momentum = np.linspace(0, robust_trend * 2.5, 144) * np.linspace(1.0, 0.0, 144)
     
     # Blend gently towards the 1D Radial Diffusion ODE physics target to prevent unphysical divergence
