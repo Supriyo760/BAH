@@ -39,14 +39,13 @@ def radial_diffusion_rhs(t: float, f: np.ndarray, L: np.ndarray, Kp: float) -> n
         
     return diff - f / tau
 
-def run_physics_forecast(current_log_flux: float, current_Kp: float, utc_hour: float = 0.0, horizons_seconds: list = [1800, 21600, 43200]) -> dict:
+def run_physics_forecast(current_log_flux, current_Kp, utc_hour, is_grasp=False):
     """
-    Runs RK45 numerical integration for radial diffusion equation.
-    Horizons: 1800s (30m), 21600s (6h), 43200s (12h).
-    Returns physics engine log_flux predictions at GEO (L ~ 6.6).
+    Fast surrogate for 1D Radial Diffusion PDE.
+    Returns dictionary of predicted log_flux at T+30m, T+6h, T+12h.
     """
-    L_grid = np.linspace(1.5, 7.0, 30)
-    geo_idx = np.argmin(np.abs(L_grid - 6.6))
+    # L-shell grid (Earth radii)
+    L_grid = np.linspace(2.0, 8.0, 60)
     
     # Construct initial PSD profile f0 matching current observation at L=6.6
     f0 = (10.0 ** current_log_flux) * (L_grid / 6.6) ** 3.0
@@ -56,10 +55,11 @@ def run_physics_forecast(current_log_flux: float, current_Kp: float, utc_hour: f
     decay = 0.05
     drive = 0.08 * max(current_Kp - 2.0, 0.0)
     
-    # Diurnal MLT correction (GSAT-19 at 48E -> UTC + 3.2 hrs)
+    # Diurnal MLT correction (GSAT-19 at 48E -> UTC + 3.2 hrs, GOES-16 at 75W -> UTC - 5.0 hrs)
     # Peak flux at Noon (12), minimum at Midnight (0)
+    lon_offset = 3.2 if is_grasp else -5.0
     def mlt_effect(future_hours):
-        local_time = (utc_hour + 3.2 + future_hours) % 24.0
+        local_time = (utc_hour + lon_offset + future_hours) % 24.0
         return -0.4 * np.cos(local_time * 2.0 * np.pi / 24.0)
         
     delta_30m = mlt_effect(0.5) - mlt_effect(0.0)

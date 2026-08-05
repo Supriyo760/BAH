@@ -381,7 +381,7 @@ utc_hour = float(df.index[-1].hour) + float(df.index[-1].minute) / 60.0
 # Execute PyTorch TFT Model Inference if available
 is_grasp_selected = "GSAT-19" in target_satellite
 tft_quantiles, tft_attn = run_tft_inference(df, is_grasp=is_grasp_selected)
-phys = physics_forecast(log_flux, kp, utc_hour)
+phys = physics_forecast(log_flux, kp, utc_hour, is_grasp=is_grasp_selected)
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
     # Use tighter PyTorch TFT inner quantiles (P25 and P75)
