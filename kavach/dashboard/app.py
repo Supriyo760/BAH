@@ -281,9 +281,14 @@ font-weight:600;margin:0 0 16px 0">MISSION CONTROL</p>
 
 mode = st.sidebar.radio("DATA STREAM", [
     "Live NOAA SWPC Satellite Stream (Real-Time)",
-    "Historical Storm Replay",
-    "GSAT-19 GRASP Sector"
+    "Historical Storm Replay"
 ])
+
+st.sidebar.markdown("---")
+target_satellite = st.sidebar.radio("TARGET SATELLITE (MLT SECTOR)", [
+    "GOES-16 (75°W / Americas)",
+    "GSAT-19 (48°E / India GRASP)"
+], help="Zero-Shot Spatial Translation: Shifts the prediction's Magnetic Local Time (MLT) footprint to simulate fluxes at a different orbital longitude.")
 
 if mode == "Historical Storm Replay":
     storm_name = st.sidebar.selectbox("SELECT STORM EVENT", list(STORM_META.keys()))
@@ -319,14 +324,6 @@ elif mode == "Live NOAA SWPC Satellite Stream (Real-Time)":
     except Exception as e:
         df = generate_data(days=7, seed=99)
         st.sidebar.warning(f"NOAA SWPC Stream: {e}")
-elif mode == "GSAT-19 GRASP Sector":
-    df = generate_data(days=7, seed=777)
-    st.sidebar.markdown("""
-<div style="background:#0B1C2D;border:1px solid #1565C0;border-radius:4px;padding:8px 10px;margin-top:6px">
-<p style="font-family:'Space Mono',monospace;font-size:0.68rem;color:#4FC3F7;margin:0">
-GSAT-19 GRASP Footprint: 48°E GEO Orbit</p>
-<p style="font-size:0.75rem;color:#8AB4D4;margin:4px 0 0 0">Calibrated for Indian Sector Equatorial Geomagnetic Anisotropy</p>
-</div>""", unsafe_allow_html=True)
 else: # Live Operations Simulation
     df = generate_data(days=7, seed=101)
     st.sidebar.caption("Simulating 24/7 continuous operational stream")
@@ -375,7 +372,8 @@ regime   = int(row["regime"])
 utc_hour = float(df.index[-1].hour) + float(df.index[-1].minute) / 60.0
 
 # Execute PyTorch TFT Model Inference if available
-tft_quantiles, tft_attn = run_tft_inference(df, is_grasp=(mode == "GSAT-19 GRASP Sector"))
+is_grasp_selected = "GSAT-19" in target_satellite
+tft_quantiles, tft_attn = run_tft_inference(df, is_grasp=is_grasp_selected)
 phys = physics_forecast(log_flux, kp, utc_hour)
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
