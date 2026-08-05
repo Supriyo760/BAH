@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # ─── Google Fonts + NASA Eyes CSS ─────────────────────────────────────────────
-st.markdown("""<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"><style>html, body, [data-testid="stAppViewContainer"] { background-color: #F8FAFC !important; color: #1E293B !important; font-family: 'Inter', sans-serif; } [data-testid="stHeader"] { background: transparent !important; } [data-testid="stSidebar"] { background: #FFFFFF !important; border-right: 1px solid #E2E8F0 !important; } [data-testid="stSidebar"] * { color: #475569 !important; } [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #0284C7 !important; } [data-testid="stMetric"] { background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 3px solid #2563EB; border-radius: 4px; padding: 16px 20px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05); } [data-testid="stMetricLabel"] { color: #64748B !important; font-size: 0.72rem !important; font-family: 'Space Mono', monospace !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; } [data-testid="stMetricValue"] { color: #0F172A !important; font-family: 'Space Mono', monospace !important; font-size: 1.4rem !important; font-weight: 600 !important; } [data-testid="stMetricDelta"] { font-size: 0.75rem !important; } h2, h3 { color: #0F172A !important; font-family: 'Inter', sans-serif !important; font-weight: 600 !important; letter-spacing: 0.04em; border-bottom: 1px solid #E2E8F0; padding-bottom: 6px; } .risk-red { background: rgba(239, 68, 68, 0.1); border: 1px solid #FCA5A5; border-left: 4px solid #EF4444; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-yellow { background: rgba(245, 158, 11, 0.1); border: 1px solid #FCD34D; border-left: 4px solid #F59E0B; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-green { background: rgba(16, 185, 129, 0.1); border: 1px solid #6EE7B7; border-left: 4px solid #10B981; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-label { font-family: 'Space Mono', monospace; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 6px 0; color: #1E293B; font-weight: 700; } .risk-value { font-family: 'Space Mono', monospace; font-size: 1.6rem; font-weight: 700; margin: 4px 0; color: #0F172A; } .risk-band { font-size: 0.78rem; color: #475569; margin: 4px 0 0 0; } .risk-msg { font-size: 0.80rem; color: #64748B; margin: 8px 0 0 0; font-style: italic; } hr { border-color: #E2E8F0 !important; } [data-testid="stInfo"] { background: #F0F9FF !important; border: 1px solid #BAE6FD !important; color: #0369A1 !important; border-radius: 4px !important; } [data-testid="stDataFrame"] { border: 1px solid #E2E8F0 !important; border-radius: 4px !important; } [data-testid="stProgress"] > div > div { background: #2563EB !important; } [data-testid="stButton"] > button { background: #FFFFFF !important; border: 1px solid #CBD5E1 !important; color: #334155 !important; font-family: 'Space Mono', monospace !important; font-size: 0.8rem !important; border-radius: 4px !important; font-weight: 600 !important; } [data-testid="stButton"] > button:hover { background: #F8FAFC !important; border-color: #94A3B8 !important; } .nasa-title { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 1.9rem; color: #0F172A; letter-spacing: 0.06em; margin: 0; } .nasa-title span { color: #2563EB; font-weight: 700; } .nasa-subtitle { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: #64748B; letter-spacing: 0.1em; text-transform: uppercase; margin: 4px 0 0 0; } .section-label { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: #0284C7; letter-spacing: 0.16em; text-transform: uppercase; margin: 0 0 14px 0; font-weight: 700; }</style>""", unsafe_allow_html=True)
+st.markdown("""<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"><style>html, body, [data-testid="stAppViewContainer"] { background-color: #F8FAFC !important; color: #000000 !important; font-family: 'Inter', sans-serif; font-weight: 500; } [data-testid="stHeader"] { background: transparent !important; } [data-testid="stSidebar"] { background: #FFFFFF !important; border-right: 1px solid #E2E8F0 !important; } [data-testid="stSidebar"] * { color: #000000 !important; font-weight: 500 !important; } [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #0047AB !important; font-weight: 700 !important; } [data-testid="stMetric"] { background: #FFFFFF; border: 1px solid #CBD5E1; border-top: 3px solid #2563EB; border-radius: 4px; padding: 16px 20px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1); } [data-testid="stMetricLabel"] { color: #000000 !important; font-size: 0.75rem !important; font-family: 'Space Mono', monospace !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; font-weight: 700 !important; } [data-testid="stMetricValue"] { color: #000000 !important; font-family: 'Space Mono', monospace !important; font-size: 1.5rem !important; font-weight: 700 !important; } [data-testid="stMetricDelta"] { font-size: 0.8rem !important; font-weight: 700 !important; } h2, h3 { color: #000000 !important; font-family: 'Inter', sans-serif !important; font-weight: 700 !important; letter-spacing: 0.04em; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; } .risk-red { background: rgba(239, 68, 68, 0.15); border: 1px solid #FCA5A5; border-left: 5px solid #EF4444; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-yellow { background: rgba(245, 158, 11, 0.15); border: 1px solid #FCD34D; border-left: 5px solid #F59E0B; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-green { background: rgba(16, 185, 129, 0.15); border: 1px solid #6EE7B7; border-left: 5px solid #10B981; border-radius: 4px; padding: 18px 20px; font-family: 'Inter', sans-serif; } .risk-label { font-family: 'Space Mono', monospace; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 6px 0; color: #000000; font-weight: 800; } .risk-value { font-family: 'Space Mono', monospace; font-size: 1.7rem; font-weight: 800; margin: 4px 0; color: #000000; } .risk-band { font-size: 0.85rem; color: #000000; margin: 4px 0 0 0; font-weight: 600; } .risk-msg { font-size: 0.85rem; color: #000000; margin: 8px 0 0 0; font-style: italic; font-weight: 600; } hr { border-color: #CBD5E1 !important; border-width: 2px !important; } [data-testid="stInfo"] { background: #E0F2FE !important; border: 1px solid #7DD3FC !important; color: #000000 !important; border-radius: 4px !important; font-weight: 600 !important; } [data-testid="stDataFrame"] { border: 2px solid #CBD5E1 !important; border-radius: 4px !important; } [data-testid="stProgress"] > div > div { background: #2563EB !important; } [data-testid="stButton"] > button { background: #FFFFFF !important; border: 2px solid #94A3B8 !important; color: #000000 !important; font-family: 'Space Mono', monospace !important; font-size: 0.85rem !important; border-radius: 4px !important; font-weight: 700 !important; } [data-testid="stButton"] > button:hover { background: #E2E8F0 !important; border-color: #64748B !important; } .nasa-title { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 2.0rem; color: #000000; letter-spacing: 0.06em; margin: 0; } .nasa-title span { color: #0047AB; font-weight: 800; } .nasa-subtitle { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: #000000; letter-spacing: 0.1em; text-transform: uppercase; margin: 4px 0 0 0; font-weight: 700; } .section-label { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: #0047AB; letter-spacing: 0.16em; text-transform: uppercase; margin: 0 0 14px 0; font-weight: 800; }</style>""", unsafe_allow_html=True)
 
 # ─── Data Generator ───────────────────────────────────────────────────────────
 def generate_data(days=7, seed=42, end_time=None):
@@ -625,26 +625,26 @@ fig.add_hline(
 fig.update_layout(
     paper_bgcolor="#FFFFFF",
     plot_bgcolor="#FFFFFF",
-    font=dict(family="Inter, sans-serif", size=13, color="#334155"),
+    font=dict(family="Inter, sans-serif", size=13, color="#000000"),
     xaxis=dict(
         title="TIME (UTC)",
         showgrid=True, gridcolor="#E2E8F0", gridwidth=1,
         linecolor="#CBD5E1", tickcolor="#CBD5E1",
-        title_font=dict(size=12, color="#0F172A"),
+        title_font=dict(size=13, color="#000000"),
         zeroline=False
     ),
     yaxis=dict(
         type="log", title="ELECTRON FLUX  (>2 MeV) [pfu]",
         showgrid=True, gridcolor="#E2E8F0", gridwidth=1,
         linecolor="#CBD5E1", tickcolor="#CBD5E1",
-        title_font=dict(size=12, color="#0F172A"),
+        title_font=dict(size=13, color="#000000"),
         range=[0, 6], zeroline=False
     ),
     legend=dict(
         orientation="h", yanchor="bottom", y=1.04,
         xanchor="right", x=1,
         bgcolor="rgba(255,255,255,0.7)",
-        font=dict(size=12, color="#0F172A")
+        font=dict(size=13, color="#000000")
     ),
     margin=dict(l=50, r=20, t=40, b=50),
     height=420
@@ -699,7 +699,7 @@ fig_params.update_layout(
     height=720,
     paper_bgcolor="#FFFFFF",
     plot_bgcolor="#FFFFFF",
-    font=dict(family="Inter, sans-serif", size=11, color="#334155"),
+    font=dict(family="Inter, sans-serif", size=12, color="#000000"),
     margin=dict(l=40, r=20, t=30, b=30),
     showlegend=True,
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.7)"),
@@ -760,7 +760,7 @@ else:
         paper_bgcolor="#FFFFFF",
         plot_bgcolor="#FFFFFF",
         yaxis_type="log",
-        font=dict(family="Inter, sans-serif", size=11, color="#334155"),
+        font=dict(family="Inter, sans-serif", size=12, color="#000000"),
         margin=dict(l=40, r=20, t=10, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.7)"),
         yaxis=dict(title="Flux (pfu) [>2 MeV]", showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", range=[0, 6])
