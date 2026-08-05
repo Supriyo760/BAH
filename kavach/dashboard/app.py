@@ -648,7 +648,7 @@ fig.update_layout(
         bgcolor="rgba(255,255,255,0.7)",
         font=dict(size=13, color="#000000")
     ),
-    margin=dict(l=50, r=20, t=40, b=50),
+    margin=dict(l=85, r=20, t=40, b=50),
     height=420
 )
 st.plotly_chart(fig, use_container_width=True, theme=None)
@@ -702,7 +702,7 @@ fig_params.update_layout(
     paper_bgcolor="#FFFFFF",
     plot_bgcolor="#FFFFFF",
     font=dict(family="Inter, sans-serif", size=12, color="#000000"),
-    margin=dict(l=40, r=20, t=30, b=30),
+    margin=dict(l=85, r=20, t=30, b=30),
     showlegend=True,
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)", font=dict(size=12, color="#000000")),
 )
@@ -763,7 +763,7 @@ else:
         plot_bgcolor="#FFFFFF",
         yaxis_type="log",
         font=dict(family="Inter, sans-serif", size=12, color="#000000"),
-        margin=dict(l=40, r=20, t=10, b=10),
+        margin=dict(l=85, r=20, t=10, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)", font=dict(size=12, color="#000000")),
         yaxis=dict(title="Flux (pfu) [>2 MeV]", showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", range=[0, 6], title_font=dict(color="#000000"), tickfont=dict(color="#000000"))
     )
