@@ -108,6 +108,16 @@ def load_storm_from_csv(name):
             "AE": "AE",
         }
         df_storm.rename(columns=rename_map, inplace=True)
+        
+        # Clean NOAA/OMNI missing data fill values to prevent massive unphysical spikes
+        # Common fill values include 99999, 9999, 999.99, 999.9, 999, 99.99, 99
+        missing_vals = [99999.9, 99999.0, 9999.99, 9999.0, 999.99, 999.9, 999.0, 99.99, 99.0]
+        df_storm.replace(missing_vals, np.nan, inplace=True)
+        
+        # Smoothly interpolate across any missing gaps
+        df_storm.interpolate(method='linear', limit_direction='both', inplace=True)
+        df_storm.bfill(inplace=True)
+        df_storm.ffill(inplace=True)
 
         # Derive any missing columns the UI needs
         if 'flux' in df_storm.columns and 'log_flux' not in df_storm.columns:

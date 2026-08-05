@@ -92,7 +92,15 @@ def train_11yr_model(data_path: str = "kavach/data/archive_11yr_goes_grasp.csv",
     print(f"[KAVACH-TRAIN] Loading 11-year dataset into memory...")
     t0 = time.time()
     df = pd.read_csv(data_path)
-    print(f"[KAVACH-TRAIN] Loaded {len(df):,} observations in {time.time() - t0:.2f} seconds.")
+    
+    # Clean NOAA/OMNI missing data fill values before training
+    missing_vals = [99999.9, 99999.0, 9999.99, 9999.0, 999.99, 999.9, 999.0, 999, 99.99, 99.0, 99]
+    df.replace(missing_vals, np.nan, inplace=True)
+    df.interpolate(method='linear', limit_direction='both', inplace=True)
+    df.bfill(inplace=True)
+    df.ffill(inplace=True)
+    
+    print(f"[KAVACH-TRAIN] Loaded and cleaned {len(df):,} observations in {time.time() - t0:.2f} seconds.")
     
     if not TORCH_AVAILABLE:
         print(f"[KAVACH-TRAIN] WARNING: PyTorch not detected in active Python environment.")
