@@ -130,6 +130,9 @@ def load_storm_from_csv(name):
         return generate_data(days=3, seed=42)
 
 # ─── Physics & Ensemble ───────────────────────────────────────────────────────
+import importlib
+import kavach.models.radial_diff
+importlib.reload(kavach.models.radial_diff)
 from kavach.models.radial_diff import run_physics_forecast as physics_forecast
 from kavach.models.ensemble import ensemble_forecast as ensemble
 from kavach.models.ensemble import classify_risk as risk_level
