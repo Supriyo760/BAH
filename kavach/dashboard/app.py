@@ -229,27 +229,30 @@ def run_tft_inference(df, is_grasp=False):
         df_copy['log_flux_t-12h'] = df_copy['flux_lag_12h'].bfill().fillna(baseline)
         df_copy['log_flux_t-24h'] = df_copy['flux_lag_24h'].bfill().fillna(baseline)
         
+        # We only need the last 24 hours (288 steps) for a single forecast
+        df_copy = df_copy.iloc[-288:].copy()
+        
         # MLT Embeddings (Zero-Shot Spatial Translation)
-        # If inferencing for GRASP, we inject the GSAT-19 longitude (+48°E) to shift the model geographically.
-        # Otherwise, we default to the GOES-16 longitude (-75°W) the model was originally trained on.
         lon_offset = 48 / 15.0 if is_grasp else -75 / 15.0
         mlt = (df_copy.index.hour + df_copy.index.minute / 60.0 + lon_offset) % 24
         df_copy['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
         df_copy['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
-        feature_cols = [
-            "log_electron_flux", "Flow_Speed", "Bz_GSM", "Proton_Density", "Temperature", "Flow_Pressure",
-            "log_flux_t-1h", "log_flux_t-3h", "log_flux_t-24h", "ULF_Power",
-            "Bx_GSM", "By_GSM", "BT", "F10.7_index", "KP", "DST", "AE",
-            "Ec", "Bz_neg_dur", "dDst_dt", "AE_1h", "log_flux_t-6h", "log_flux_t-12h",
-            "MLT_sin", "MLT_cos"
+        # Feature selection matches training precisely
+        features = [
+            'log_flux', 'KP', 'DST', 'F10.7', 'F10.7_45d', 'AL', 'AU', 'SYM-H',
+            'B_Z_GSE', 'B_Y_GSE', 'Vx', 'Vy', 'Vz', 'T', 'Np', 'Pdyn',
+            'PCN', 'SME', 'Vsw', 'AE', 'beta', 'Mach_num', 'Lshell',
+            'MLT_sin', 'MLT_cos'
         ]
         
-        data_matrix = df_copy[feature_cols].tail(288).values.astype(np.float32)
-        if len(data_matrix) < 288:
-            pad = np.tile(data_matrix[0:1], (288 - len(data_matrix), 1))
-            data_matrix = np.vstack([pad, data_matrix])
-            
+        # Ensure all columns exist, fill missing with 0
+        for f in features:
+            if f not in df_copy.columns:
+                df_copy[f] = 0.0
+
+        data_matrix = df_copy[features].values
+        
         if tft_scaler_instance is not None and isinstance(tft_scaler_instance, dict) and 'mean' in tft_scaler_instance and 'std' in tft_scaler_instance:
             if tft_scaler_instance['mean'].shape[1] == data_matrix.shape[1]:
                 norm_x = (data_matrix - tft_scaler_instance['mean']) / tft_scaler_instance['std']
@@ -260,12 +263,16 @@ def run_tft_inference(df, is_grasp=False):
                 std[:, 0] = 1.0
                 norm_x = (data_matrix - mean) / std
         else:
-            # Fallback only
             mean = np.mean(data_matrix, axis=0, keepdims=True)
             std  = np.std(data_matrix,  axis=0, keepdims=True) + 1e-7
             mean[:, 0] = 0.0
             std[:, 0]  = 1.0
             norm_x = (data_matrix - mean) / std
+            
+        # Ensure we have exactly 288 steps (pad with zeros if necessary)
+        if len(norm_x) < 288:
+            pad = np.zeros((288 - len(norm_x), norm_x.shape[1]))
+            norm_x = np.vstack((pad, norm_x))
             
         x_tensor = torch.tensor(norm_x, dtype=torch.float32).unsqueeze(0)
 
@@ -386,6 +393,9 @@ utc_hour = float(df.index[-1].hour) + float(df.index[-1].minute) / 60.0
 
 # Execute PyTorch TFT Model Inference if available
 is_grasp_selected = "GSAT-19" in target_satellite
+
+# Get baseline GOES prediction to calculate the systemic DC offset of the neural network
+goes_quantiles, _ = run_tft_inference(df, is_grasp=False)
 tft_quantiles, tft_attn = run_tft_inference(df, is_grasp=is_grasp_selected)
 phys = physics_forecast(log_flux, kp, utc_hour, is_grasp=is_grasp_selected)
 
@@ -399,11 +409,15 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     # Instead of permanently dragging the entire 12h forecast down/up due to a single noisy last observation,
     # we anchor the core forecast to a robust 1-hour moving average of recent flux.
     recent_1h_avg = float(df['log_flux'].iloc[-12:].mean())
-    base_anchor_offset = recent_1h_avg - tft_f_P50[0]
     
-    tft_f_P50 = tft_f_P50 + base_anchor_offset
-    raw_P25 = raw_P25 + base_anchor_offset
-    raw_P75 = raw_P75 + base_anchor_offset
+    # Instead of anchoring GRASP to the GOES observed flux (which erases the MLT difference),
+    # we anchor using the systemic error of the GOES prediction!
+    goes_P50 = goes_quantiles[:, 2]
+    systemic_error = recent_1h_avg - goes_P50[0]
+    
+    tft_f_P50 = tft_f_P50 + systemic_error
+    raw_P25 = raw_P25 + systemic_error
+    raw_P75 = raw_P75 + systemic_error
     
     # To maintain a visually seamless connection with the raw observed data, we inject the anomaly 
     # of the exact last point, but decay it rapidly over ~1 hour using an exponential curve.
