@@ -845,7 +845,7 @@ tab_drivers, tab_importance, tab_specs = st.tabs([
 ])
 
 with tab_drivers:
-    st.markdown('<p class="section-label">Solar Wind Feature Attribution & Precursors</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-label">Current Driver Intensity Scale (Relative to Extreme Storm)</p>', unsafe_allow_html=True)
     d1, d2 = st.columns(2)
     with d1:
         # Use physical heuristics for UI visualization instead of raw TFT attention (which is overly spiky)
