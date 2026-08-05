@@ -413,16 +413,16 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     
     tft_f_P50 = tft_f_P50 + momentum + drift
     
-    # Dynamic Quantile Band Width based on Geomagnetic Regime
-    spread_multiplier = 0.2 + 0.8 * (kp / 9.0)  # Narrow when Kp is low, wide when Kp is high
+    # --- DYNAMIC QUANTILE BAND ---
+    # Instead of relying on raw uncalibrated ML quantiles, we enforce a symmetric, physics-based 
+    # uncertainty spread that expands dynamically during high Kp storms and shrinks during quiet times.
+    base_spread = 0.25  # ~1.7x flux uncertainty baseline
+    storm_spread = 0.55 * (kp / 9.0)  # Expands by up to ~3.5x flux uncertainty during G5 storms
+    total_spread = base_spread + storm_spread
     
-    # Calculate the true mathematical uncertainty width from the original PyTorch model
-    lower_width = (tft_quantiles[:, 2] - tft_quantiles[:, 1]) * spread_multiplier
-    upper_width = (tft_quantiles[:, 3] - tft_quantiles[:, 2]) * spread_multiplier
-    
-    # Wrap the bands perfectly around our final physics-adjusted median trajectory
-    tft_f_P10 = tft_f_P50 - lower_width
-    tft_f_P90 = tft_f_P50 + upper_width
+    # Wrap the bands perfectly symmetrically around our final median trajectory
+    tft_f_P10 = tft_f_P50 - total_spread
+    tft_f_P90 = tft_f_P50 + total_spread
     
     ml_30m  = float(tft_f_P50[5])    # T+30m = index 5
     ml_6h   = float(tft_f_P50[71])   # T+6h  = index 71
