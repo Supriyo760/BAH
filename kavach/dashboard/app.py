@@ -735,26 +735,58 @@ if is_benchmark:
         s_30m, s_6h, s_12h = run_continuous_validation(df, storm_name, is_grasp_selected)
     
     fig = make_subplots(
-        rows=3, cols=1, shared_xaxes=True,
-        subplot_titles=("Predictions for 30-min prediction", "Predictions for 6-hour prediction", "Predictions for 12-hour prediction"),
+        rows=3, cols=2,
+        column_widths=[0.72, 0.28],
+        shared_xaxes=False,
+        subplot_titles=(
+            "Predictions for 30-min prediction", "(a) Scatter (T+30m)",
+            "Predictions for 6-hour prediction", "(b) Scatter (T+6h)",
+            "Predictions for 12-hour prediction", "(c) Scatter (T+12h)"
+        ),
+        horizontal_spacing=0.08,
         vertical_spacing=0.08
     )
     
     def add_validation_plot(pred_series, row_num):
+        # Time-series (Left Column)
         fig.add_trace(go.Scatter(
             x=t_hist, y=f_hist,
             name="Observations",
-            line=dict(color="#000000", width=1.5),
+            line=dict(color="#000000", width=1.3),
             showlegend=(row_num==1)
         ), row=row_num, col=1)
         if pred_series is not None:
             fig.add_trace(go.Scatter(
                 x=pred_series.index, y=10**pred_series,
                 name="Predictions from TFT",
-                line=dict(color="#DC2626", width=1.5),
+                line=dict(color="#DC2626", width=1.3),
                 showlegend=(row_num==1)
             ), row=row_num, col=1)
-        fig.add_hline(y=1e4, line_dash="dot", line_color="#2563EB", line_width=1.5, row=row_num, col=1)
+            
+            # Scatter Plot (Right Column)
+            valid = ~np.isnan(pred_series.values) & ~np.isnan(df['log_flux'].values)
+            if valid.any():
+                obs_vals = 10**df['log_flux'].values[valid]
+                pred_vals = 10**pred_series.values[valid]
+                
+                fig.add_trace(go.Scatter(
+                    x=obs_vals, y=pred_vals,
+                    mode="markers",
+                    marker=dict(color="#000000", size=2.5, opacity=0.35),
+                    name="Data Points",
+                    showlegend=False
+                ), row=row_num, col=2)
+                
+                # 1:1 Identity Blue Line
+                fig.add_trace(go.Scatter(
+                    x=[1e-1, 1e6], y=[1e-1, 1e6],
+                    mode="lines",
+                    line=dict(color="#2563EB", width=1.5),
+                    name="1:1 Line",
+                    showlegend=False
+                ), row=row_num, col=2)
+
+        fig.add_hline(y=1e4, line_dash="dot", line_color="#2563EB", line_width=1.2, row=row_num, col=1)
 
     add_validation_plot(s_30m, 1)
     add_validation_plot(s_6h, 2)
@@ -816,18 +848,24 @@ if not is_benchmark:
 
 if is_benchmark:
     for annotation in fig['layout']['annotations']: 
-        annotation['font'] = dict(size=13, color="#000000")
+        annotation['font'] = dict(size=12, color="#000000", family="Space Mono")
         
     fig.update_layout(
         paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
-        font=dict(family="Inter, sans-serif", size=13, color="#000000"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.7)"),
-        margin=dict(l=85, r=20, t=60, b=40),
-        height=800
+        font=dict(family="Inter, sans-serif", size=12, color="#000000"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.8)"),
+        margin=dict(l=75, r=25, t=60, b=40),
+        height=850
     )
     for i in range(1, 4):
+        # Time-Series Axes (Left)
         fig.update_yaxes(type="log", title="Flux [pfu]" if i==2 else "", range=[0, 6], showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=1)
         fig.update_xaxes(showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=1)
+        
+        # Scatter Plot Axes (Right)
+        fig.update_xaxes(type="log", range=[-1, 6], title="Observed" if i==3 else "", showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=2)
+        fig.update_yaxes(type="log", range=[-1, 6], title="Predicted" if i==2 else "", showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=2)
+        
     fig.update_xaxes(title="TIME (UTC)", row=3, col=1)
 else:
     fig.update_layout(
