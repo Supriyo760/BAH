@@ -782,13 +782,31 @@ fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("AE", pd.Series(100, index=df
 fig_params.add_trace(go.Scatter(x=t_hist, y=df["DST"].values[-hist_n:], name="Dst (nT)", line=dict(color="#E11D48", width=1.5)), row=3, col=1)
 
 # R4: MLT displayed as raw 0-24h for operator readability
-# (The AI model uses MLT_sin and MLT_cos internally for cyclical encoding)
+# We additionally plot visually scaled Sine/Cosine waves so the operator 
+# can see the exact cyclical embeddings the AI uses, mapped to the 0-24 grid.
 hist_sat_lon = 48.0 if is_grasp_selected else -75.0
 mlt_hours = calculate_mlt_vectorized(t_hist, hist_sat_lon)
+mlt_sin = np.sin(mlt_hours * 2 * np.pi / 24)
+mlt_cos = np.cos(mlt_hours * 2 * np.pi / 24)
+
+# Plot visually scaled cyclical features in the background
+fig_params.add_trace(go.Scatter(
+    x=t_hist, y=(mlt_sin + 1) * 12,
+    name="MLT Sin (Scaled)",
+    line=dict(color="rgba(234, 88, 12, 0.4)", width=2, dash="dot")
+), row=4, col=1)
+
+fig_params.add_trace(go.Scatter(
+    x=t_hist, y=(mlt_cos + 1) * 12,
+    name="MLT Cos (Scaled)",
+    line=dict(color="rgba(5, 150, 105, 0.4)", width=2, dash="dot")
+), row=4, col=1)
+
+# Plot the raw human-readable hour sawtooth in the foreground
 fig_params.add_trace(go.Scatter(
     x=t_hist, y=mlt_hours,
-    name="MLT (Hours)",
-    line=dict(color="#EA580C", width=1.5)
+    name="Raw MLT (Hours)",
+    line=dict(color="#EA580C", width=1.8)
 ), row=4, col=1)
 
 fig_params.update_layout(
