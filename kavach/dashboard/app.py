@@ -294,6 +294,83 @@ def run_tft_inference(df, is_grasp=False):
         st.sidebar.error(f"TFT Engine Error: {str(e)}")
         return None, None
 
+@st.cache_data(show_spinner=False, ttl=3600)
+def run_continuous_validation(df, storm_name, is_grasp=False):
+    """
+    Runs sliding-window continuous validation on the full storm dataframe.
+    Uses stride=6 (30 min) for performance, then linearly interpolates.
+    Returns 3 Pandas Series representing T+30min, T+6h, and T+12h forecasts.
+    """
+    if tft_model_instance is None: return None, None, None
+    try:
+        import torch
+        df_copy = df.copy()
+        raw_log_flux = df_copy.get('log_flux', pd.Series(0.0, index=df_copy.index))
+        df_copy['log_electron_flux'] = raw_log_flux.rolling(window=24, min_periods=1, center=False).median()
+        df_copy['Vsw'] = df_copy.get('Vsw', 400.0)
+        df_copy['Pdyn'] = df_copy.get('Pdyn', 2.0)
+        df_copy['BY_GSM'] = df_copy.get('BY_GSM', 0.0)
+        df_copy['BZ_GSM'] = df_copy.get('BZ_GSM', 0.0)
+        df_copy['F10.7_index'] = df_copy.get('F10.7_index', 70.0)
+        df_copy['DST'] = df_copy.get('DST', -10.0)
+        df_copy['AE'] = df_copy.get('AE', 100.0)
+        
+        satellite_lon = 48.0 if is_grasp else -75.0
+        mlt = calculate_mlt_vectorized(df_copy.index, satellite_lon)
+        df_copy['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
+        df_copy['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
+        
+        feature_cols = ["log_electron_flux", "BY_GSM", "BZ_GSM", "Pdyn", "Vsw", "AE", "DST", "F10.7_index", "MLT_sin", "MLT_cos"]
+        for f in feature_cols:
+            if f not in df_copy.columns: df_copy[f] = 0.0
+        
+        data_matrix = df_copy[feature_cols].values
+        
+        if tft_scaler_instance is not None and isinstance(tft_scaler_instance, dict):
+            if tft_scaler_instance['mean'].shape[1] == data_matrix.shape[1]:
+                norm_x = (data_matrix - tft_scaler_instance['mean']) / tft_scaler_instance['std']
+            else:
+                mean = np.mean(data_matrix, axis=0, keepdims=True)
+                std = np.std(data_matrix, axis=0, keepdims=True) + 1e-7
+                mean[:, 0] = 0.0; std[:, 0] = 1.0
+                norm_x = (data_matrix - mean) / std
+        else:
+            norm_x = data_matrix
+
+        seq_len = 288
+        if len(norm_x) <= seq_len: return None, None, None
+
+        stride = 6
+        starts = np.arange(0, len(norm_x) - seq_len, stride)
+        if len(starts) == 0: return None, None, None
+            
+        windows = np.array([norm_x[i:i+seq_len] for i in starts])
+        x_tensor = torch.tensor(windows, dtype=torch.float32)
+        
+        with torch.no_grad():
+            preds, _ = tft_model_instance(x_tensor)
+            preds_p50 = preds[:, :, 2].cpu().numpy()
+            
+        pred_30m = preds_p50[:, 5]
+        pred_6h = preds_p50[:, 71]
+        pred_12h = preds_p50[:, 143]
+        
+        def map_to_series(pred_arr, horizon_offset):
+            res = np.full(len(norm_x), np.nan)
+            target_indices = starts + seq_len - 1 + horizon_offset
+            valid = target_indices < len(norm_x)
+            res[target_indices[valid]] = pred_arr[valid]
+            # Convert to Pandas Series and interpolate the gaps left by striding
+            return pd.Series(res, index=df_copy.index).interpolate(method='linear')
+            
+        s_30m = map_to_series(pred_30m, 6)
+        s_6h = map_to_series(pred_6h, 72)
+        s_12h = map_to_series(pred_12h, 144)
+        return s_30m, s_6h, s_12h
+    except Exception as e:
+        print("Validation error:", e)
+        return None, None, None
+
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 st.sidebar.markdown("""
 <p style="font-family:'Space Mono',monospace;font-size:0.62rem;letter-spacing:0.16em;
@@ -658,18 +735,31 @@ fig.add_trace(go.Scatter(
     line=dict(color="#2563EB", width=2.5)
 ))
 if is_benchmark:
-    # Generate the continuous T+6h forecast proxy for the full duration
-    # We use a smoothed version of the actual target state to simulate an AI that correctly anticipates 
-    # the future without artificial phase lag, adding minor realistic uncertainty noise.
-    base_smooth = df['log_flux'].rolling(window=12, min_periods=1, center=True).mean()
-    b_log_flux = base_smooth + 0.05 * np.sin(np.arange(len(df)) / 5.0) + np.random.normal(0, 0.03, len(df))
-    b_time = df.index
+    with st.spinner("Running PyTorch TFT Sliding-Window Validation across full storm..."):
+        s_30m, s_6h, s_12h = run_continuous_validation(df, storm_name, is_grasp_selected)
     
-    fig.add_trace(go.Scatter(
-        x=b_time, y=10**b_log_flux,
-        name="TFT Engine (T+6h Hindcast)",
-        line=dict(color="#F59E0B", width=2.5)
-    ))
+    if s_30m is not None:
+        fig.add_trace(go.Scatter(
+            x=s_30m.index, y=10**s_30m,
+            name="TFT (T+30m Hindcast)",
+            line=dict(color="#F59E0B", width=2)
+        ))
+        fig.add_trace(go.Scatter(
+            x=s_6h.index, y=10**s_6h,
+            name="TFT (T+6h Hindcast)",
+            line=dict(color="#D97706", width=2, dash="dash")
+        ))
+        fig.add_trace(go.Scatter(
+            x=s_12h.index, y=10**s_12h,
+            name="TFT (T+12h Hindcast)",
+            line=dict(color="#B45309", width=2, dash="dot")
+        ))
+        validation_results = {
+            'truth': df['log_flux'].values,
+            's_30m': s_30m.values,
+            's_6h': s_6h.values,
+            's_12h': s_12h.values
+        }
 else:
     if mode == "Historical Storm Replay" and 'df_full' in locals() and 'step' in locals() and show_forecast:
         df_fut_truth = df_full.iloc[step+1 : step+145]
@@ -740,6 +830,27 @@ fig.update_layout(
     height=420
 )
 st.plotly_chart(fig, use_container_width=True, theme=None)
+
+if is_benchmark and 'validation_results' in locals():
+    truth = validation_results['truth']
+    s_30m = validation_results['s_30m']
+    s_6h = validation_results['s_6h']
+    s_12h = validation_results['s_12h']
+    
+    def calc_lc(t, p):
+        v = ~np.isnan(t) & ~np.isnan(p)
+        return float(np.corrcoef(t[v], p[v])[0, 1]) if v.any() else 0.0
+        
+    def calc_rmse(t, p):
+        v = ~np.isnan(t) & ~np.isnan(p)
+        return float(np.sqrt(np.mean((t[v] - p[v])**2))) if v.any() else 0.0
+
+    st.markdown('<p class="section-label" style="margin-top:0;">Hindcast Validation Metrics</p>', unsafe_allow_html=True)
+    mc1, mc2, mc3, mc4 = st.columns(4)
+    mc1.metric("LC (T+30m)", f"{calc_lc(truth, s_30m):.3f}")
+    mc2.metric("LC (T+6h)", f"{calc_lc(truth, s_6h):.3f}")
+    mc3.metric("LC (T+12h)", f"{calc_lc(truth, s_12h):.3f}")
+    mc4.metric("RMSE (T+6h, log10)", f"{calc_rmse(truth, s_6h):.4f}")
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
