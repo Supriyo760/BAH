@@ -179,12 +179,12 @@ STORM_META = {
     "G4 Aurora Storm (Oct 2024)":       {"min_dst":-269,"max_kp":8,"desc":"Severe G4 storm caused by a fast halo CME. Benchmark dataset extracted natively from OMNI and GOES-16."},
 }
 
-WEIGHTS_VERSION = "v12"  # bump to bust Streamlit @cache_resource
+WEIGHTS_VERSION = "v13"  # bump to bust Streamlit @cache_resource
 
 @st.cache_resource
 def load_kavach_model(_version=WEIGHTS_VERSION):
     """Loads the PyTorch TFT weights and the global feature scaler."""
-    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'finetuned_gsat19_grasp_ulf.pth'))
+    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'tft_model_11yr.pth'))
     scaler_path  = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler.pkl'))
     model = None
     scaler = None
@@ -296,7 +296,7 @@ def run_tft_inference(df, is_grasp=False):
         return None, None
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def run_continuous_validation(df, storm_name, is_grasp=False):
+def run_continuous_validation(df, storm_name, is_grasp=False, _version=WEIGHTS_VERSION):
     """
     Runs sliding-window continuous validation on the full storm dataframe.
     Uses stride=6 (30 min) for performance, then linearly interpolates.
@@ -732,7 +732,7 @@ with export_col:
 
 if is_benchmark:
     with st.spinner("Running PyTorch TFT Sliding-Window Validation across full storm..."):
-        s_30m, s_6h, s_12h = run_continuous_validation(df, storm_name, is_grasp_selected)
+        s_30m, s_6h, s_12h = run_continuous_validation(df, storm_name, is_grasp_selected, WEIGHTS_VERSION)
     
     fig = make_subplots(
         rows=3, cols=2,
