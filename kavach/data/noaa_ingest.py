@@ -97,9 +97,10 @@ def fetch_live_noaa_telemetry(timeout_sec: int = 5):
             df_goes_mag = df_goes_mag.add_prefix("goes_")
             df_merged = df_merged.join(df_goes_mag, how="outer")
         
-        # Clean NOAA missing data fill values (e.g., 99999, 999.99, 99.99)
+        # Clean NOAA missing data fill values (handling both numeric and string API representations)
         missing_vals = [99999.9, 99999.0, 9999.99, 9999.0, 999.99, 999.9, 999.0, 99.99, 99.0]
-        df_merged.replace(missing_vals, np.nan, inplace=True)
+        missing_vals_str = [str(v) for v in missing_vals] + [str(int(v)) for v in missing_vals if v.is_integer()]
+        df_merged.replace(missing_vals + missing_vals_str, np.nan, inplace=True)
         
         # Extract features (handling both RTSW and DSCOVR field names)
         df_out = pd.DataFrame(index=df_merged.index)
