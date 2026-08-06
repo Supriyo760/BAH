@@ -728,39 +728,49 @@ with export_col:
         mime="text/csv"
     )
 
-fig = go.Figure()
-fig.add_trace(go.Scatter(
-    x=t_hist, y=f_hist,
-    name="Observed  (GOES / GRASP)",
-    line=dict(color="#2563EB", width=2.5)
-))
 if is_benchmark:
     with st.spinner("Running PyTorch TFT Sliding-Window Validation across full storm..."):
         s_30m, s_6h, s_12h = run_continuous_validation(df, storm_name, is_grasp_selected)
     
-    if s_30m is not None:
+    fig = make_subplots(
+        rows=3, cols=1, shared_xaxes=True,
+        subplot_titles=("Predictions for 30-min prediction", "Predictions for 6-hour prediction", "Predictions for 12-hour prediction"),
+        vertical_spacing=0.08
+    )
+    
+    def add_validation_plot(pred_series, row_num):
         fig.add_trace(go.Scatter(
-            x=s_30m.index, y=10**s_30m,
-            name="TFT (T+30m Hindcast)",
-            line=dict(color="#F59E0B", width=2)
-        ))
-        fig.add_trace(go.Scatter(
-            x=s_6h.index, y=10**s_6h,
-            name="TFT (T+6h Hindcast)",
-            line=dict(color="#D97706", width=2, dash="dash")
-        ))
-        fig.add_trace(go.Scatter(
-            x=s_12h.index, y=10**s_12h,
-            name="TFT (T+12h Hindcast)",
-            line=dict(color="#B45309", width=2, dash="dot")
-        ))
-        validation_results = {
-            'truth': df['log_flux'].values,
-            's_30m': s_30m.values,
-            's_6h': s_6h.values,
-            's_12h': s_12h.values
-        }
+            x=t_hist, y=f_hist,
+            name="Observations",
+            line=dict(color="#000000", width=1.5),
+            showlegend=(row_num==1)
+        ), row=row_num, col=1)
+        if pred_series is not None:
+            fig.add_trace(go.Scatter(
+                x=pred_series.index, y=10**pred_series,
+                name="Predictions from TFT",
+                line=dict(color="#DC2626", width=1.5),
+                showlegend=(row_num==1)
+            ), row=row_num, col=1)
+        fig.add_hline(y=1e4, line_dash="dot", line_color="#2563EB", line_width=1.5, row=row_num, col=1)
+
+    add_validation_plot(s_30m, 1)
+    add_validation_plot(s_6h, 2)
+    add_validation_plot(s_12h, 3)
+    
+    validation_results = {
+        'truth': df['log_flux'].values,
+        's_30m': s_30m.values if s_30m is not None else np.full(len(df), np.nan),
+        's_6h': s_6h.values if s_6h is not None else np.full(len(df), np.nan),
+        's_12h': s_12h.values if s_12h is not None else np.full(len(df), np.nan)
+    }
 else:
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=t_hist, y=f_hist,
+        name="Observed  (GOES / GRASP)",
+        line=dict(color="#2563EB", width=2.5)
+    ))
     if mode == "Historical Storm Replay" and 'df_full' in locals() and 'step' in locals() and show_forecast:
         df_fut_truth = df_full.iloc[step+1 : step+145]
         if len(df_fut_truth) > 0:
@@ -793,42 +803,60 @@ else:
             name="50% Quantile Band",
             line=dict(color="rgba(245,158,11,0)", width=0)
         ))
-fig.add_hline(
-    y=1e4, line_dash="dot", line_color="#DC2626", line_width=1.5,
-    annotation_text="Anomaly Threshold (10⁴ pfu)",
-    annotation_font_color="#DC2626",
-    annotation_font_size=12,
-    annotation_position="top right"
-)
-fig.update_layout(
-    paper_bgcolor="#FFFFFF",
-    plot_bgcolor="#FFFFFF",
-    font=dict(family="Inter, sans-serif", size=13, color="#000000"),
-    xaxis=dict(
-        title="TIME (UTC)",
-        showgrid=True, gridcolor="#E2E8F0", gridwidth=1,
-        linecolor="#CBD5E1", tickcolor="#CBD5E1",
-        title_font=dict(size=13, color="#000000"),
-        tickfont=dict(size=12, color="#000000"),
-        zeroline=False
-    ),
-    yaxis=dict(
-        type="log", title="ELECTRON FLUX  (>2 MeV) [pfu]",
-        showgrid=True, gridcolor="#E2E8F0", gridwidth=1,
-        linecolor="#CBD5E1", tickcolor="#CBD5E1",
-        title_font=dict(size=13, color="#000000"),
-        tickfont=dict(size=12, color="#000000"),
-        range=[0, 6], zeroline=False
-    ),
-    legend=dict(
-        orientation="h", yanchor="bottom", y=1.04,
-        xanchor="right", x=1,
-        bgcolor="rgba(255,255,255,0.7)",
-        font=dict(size=13, color="#000000")
-    ),
-    margin=dict(l=85, r=20, t=40, b=60),
-    height=420
-)
+if not is_benchmark:
+    fig.add_hline(
+        y=1e4, line_dash="dot", line_color="#DC2626", line_width=1.5,
+        annotation_text="Anomaly Threshold (10⁴ pfu)",
+        annotation_font_color="#DC2626",
+        annotation_font_size=12,
+        annotation_position="top right"
+    )
+
+if is_benchmark:
+    for annotation in fig['layout']['annotations']: 
+        annotation['font'] = dict(size=13, color="#000000")
+        
+    fig.update_layout(
+        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+        font=dict(family="Inter, sans-serif", size=13, color="#000000"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.7)"),
+        margin=dict(l=85, r=20, t=60, b=40),
+        height=800
+    )
+    for i in range(1, 4):
+        fig.update_yaxes(type="log", title="Flux [pfu]" if i==2 else "", range=[0, 6], showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=1)
+        fig.update_xaxes(showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=1)
+    fig.update_xaxes(title="TIME (UTC)", row=3, col=1)
+else:
+    fig.update_layout(
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        font=dict(family="Inter, sans-serif", size=13, color="#000000"),
+        xaxis=dict(
+            title="TIME (UTC)",
+            showgrid=True, gridcolor="#E2E8F0", gridwidth=1,
+            linecolor="#CBD5E1", tickcolor="#CBD5E1",
+            title_font=dict(size=13, color="#000000"),
+            tickfont=dict(size=12, color="#000000"),
+            zeroline=False
+        ),
+        yaxis=dict(
+            type="log", title="ELECTRON FLUX  (>2 MeV) [pfu]",
+            showgrid=True, gridcolor="#E2E8F0", gridwidth=1,
+            linecolor="#CBD5E1", tickcolor="#CBD5E1",
+            title_font=dict(size=13, color="#000000"),
+            tickfont=dict(size=12, color="#000000"),
+            range=[0, 6], zeroline=False
+        ),
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.04,
+            xanchor="right", x=1,
+            bgcolor="rgba(255,255,255,0.7)",
+            font=dict(size=13, color="#000000")
+        ),
+        margin=dict(l=85, r=20, t=40, b=60),
+        height=420
+    )
 st.plotly_chart(fig, use_container_width=True, theme=None)
 
 if is_benchmark and 'validation_results' in locals():
