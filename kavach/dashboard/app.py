@@ -410,11 +410,13 @@ Min Dst: {meta['min_dst']} nT &nbsp;|&nbsp; Max Kp: {meta['max_kp']}</p>
     df_full = load_storm_from_csv(storm_name)
     benchmark_mode = st.sidebar.checkbox("FULL-STORM BENCHMARK OVERLAY", value=True, help="Overrides the timeline slider to visualize the continuous T+6h physics-AI forecast against actual observations for the entire storm.")
     
+    # Always show the slider so the user can scrub the timeline
+    step = st.sidebar.slider("REPLAY TIMELINE", 0, len(df_full)-1, len(df_full)//2)
+    
     if benchmark_mode:
-        # Hide the slider and use the full dataset
+        # Use the full dataset
         df = df_full
     else:
-        step = st.sidebar.slider("REPLAY TIMELINE", 0, len(df_full)-1, len(df_full)//2)
         df = df_full.iloc[:step+1]
 elif mode == "Live NOAA SWPC Satellite Stream (Real-Time)":
     try:
@@ -577,7 +579,8 @@ if tft_model_instance is None:
     st.error("🚨 **CRITICAL SYSTEM ALERT**: PyTorch AI Engine is OFFLINE! Unable to load the neural network weights from memory. The system is currently running in 'Fallback UI Simulation Mode' mathematically estimating the prediction. **To fix this: Reboot the Streamlit App or Clear Cache.**")
 
 if mode == "Historical Storm Replay":
-    st.markdown(f"""<p class="nasa-subtitle" style="margin-top:0">HISTORICAL REPLAY: {storm_name.upper()} &nbsp;|&nbsp; <span style="color:#00E5FF;font-weight:700">REPLAY TIMELINE: {df.index[-1].strftime('%Y-%m-%d %H:%M UTC')}</span></p>""", unsafe_allow_html=True)
+    current_time_str = df_full.index[step].strftime('%Y-%m-%d %H:%M UTC') if 'df_full' in locals() and 'step' in locals() else df.index[-1].strftime('%Y-%m-%d %H:%M UTC')
+    st.markdown(f"""<p class="nasa-subtitle" style="margin-top:0">HISTORICAL REPLAY: {storm_name.upper()} &nbsp;|&nbsp; <span style="color:#00E5FF;font-weight:700">REPLAY TIMELINE: {current_time_str}</span></p>""", unsafe_allow_html=True)
 else:
     mode_prefix = {
         "Live NOAA SWPC Satellite Stream (Real-Time)": "LIVE NOAA SWPC TELEMETRY STREAM",
@@ -897,6 +900,11 @@ else:
         margin=dict(l=85, r=20, t=40, b=60),
         height=420
     )
+
+if mode == "Historical Storm Replay" and 'step' in locals() and benchmark_mode:
+    current_time_val = df_full.index[step]
+    fig.add_vline(x=current_time_val, line_width=1.5, line_dash="dash", line_color="#FF4B4B", row='all', col=1)
+
 st.plotly_chart(fig, use_container_width=True, theme=None)
 
 if is_benchmark and 'validation_results' in locals():
@@ -1006,6 +1014,10 @@ fig_params.update_yaxes(title_text="Speed (km/s)", row=2, col=1)
 fig_params.update_yaxes(title_text="Value", row=3, col=1)
 fig_params.update_yaxes(title_text="Time (Hours)", range=[0, 24], dtick=4, row=4, col=1)
 fig_params.update_xaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", title_font=dict(color="#000000"), tickfont=dict(color="#000000"), row=4, col=1)
+
+if mode == "Historical Storm Replay" and 'step' in locals() and benchmark_mode:
+    current_time_val = df_full.index[step]
+    fig_params.add_vline(x=current_time_val, line_width=1.5, line_dash="dash", line_color="#FF4B4B")
 
 st.plotly_chart(fig_params, use_container_width=True, theme=None)
 
