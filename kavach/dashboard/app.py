@@ -465,7 +465,12 @@ if st.sidebar.button("SYNC GPU WEIGHTS"):
             st.sidebar.warning(f"Repo not found or private: {e}")
 
 # ─── Current Row ──────────────────────────────────────────────────────────────
-row      = df.iloc[-1]
+if mode == "Historical Storm Replay" and 'df_full' in locals() and 'step' in locals():
+    df_current = df_full.iloc[:step+1]
+else:
+    df_current = df
+
+row      = df_current.iloc[-1]
 log_flux = float(row["log_flux"])
 flux     = float(row["flux"])
 kp       = float(row["KP"])
@@ -476,20 +481,20 @@ ulf      = float(row["ULF_power"])
 regime   = int(row["regime"])
 
 # Calculate current UTC hour for MLT physics injection
-utc_hour = float(df.index[-1].hour) + float(df.index[-1].minute) / 60.0
+utc_hour = float(df_current.index[-1].hour) + float(df_current.index[-1].minute) / 60.0
 
 # Calculate max Kp over the last 72 hours (3 days) to give the physics model long-term storm memory for recovery phase acceleration
-max_kp_72h = float(df['KP'].iloc[-864:].max()) if len(df) >= 864 else float(df['KP'].max())
+max_kp_72h = float(df_current['KP'].iloc[-864:].max()) if len(df_current) >= 864 else float(df_current['KP'].max())
 
 # Use 6-hour median to determine the true macro-state of the radiation belts, immune to narrow dropouts
-core_state = float(df['log_flux'].iloc[-72:].median()) if len(df) >= 72 else float(df['log_flux'].median())
+core_state = float(df_current['log_flux'].iloc[-72:].median()) if len(df_current) >= 72 else float(df_current['log_flux'].median())
 
 # Execute PyTorch TFT Model Inference if available
 is_grasp_selected = "GSAT-19" in target_satellite
 
 # Get baseline GOES prediction to calculate the systemic DC offset of the neural network
-goes_quantiles, _ = run_tft_inference(df, is_grasp=False)
-tft_quantiles, tft_attn = run_tft_inference(df, is_grasp=is_grasp_selected)
+goes_quantiles, _ = run_tft_inference(df_current, is_grasp=False)
+tft_quantiles, tft_attn = run_tft_inference(df_current, is_grasp=is_grasp_selected)
 phys = physics_forecast(core_state, kp, max_kp_72h, utc_hour, is_grasp=is_grasp_selected)
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
