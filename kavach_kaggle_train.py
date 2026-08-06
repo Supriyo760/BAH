@@ -140,6 +140,19 @@ SEQ_LEN, PRED_LEN = 288, 144
 # Shared NOAA/OMNI missing data fill values (used across all prepare functions)
 NOAA_FILL_VALS = [99999.9, 99999.0, 9999.99, 9999.0, 999.99, 999.9, 999.0, 99.99, 99.0]
 
+def calculate_mlt_vectorized(dt_index: pd.DatetimeIndex, satellite_lon: float) -> np.ndarray:
+    """Vectorized MLT calculation using Equation of Time (EoT) and Subsolar Longitude."""
+    ut_hours = dt_index.hour + dt_index.minute / 60.0 + dt_index.second / 3600.0
+    doy = dt_index.dayofyear
+    year_fraction = (2 * np.pi / 365.0) * (doy - 1 + (ut_hours - 12.0) / 24.0)
+    eot = 229.18 * (0.000075 + 0.001868 * np.cos(year_fraction) 
+                    - 0.032077 * np.sin(year_fraction) 
+                    - 0.014615 * np.cos(2 * year_fraction) 
+                    - 0.040849 * np.sin(2 * year_fraction))
+    subsolar_lon = -15.0 * (ut_hours - 12.0 + eot / 60.0)
+    mlt = ut_hours + (satellite_lon - subsolar_lon) / 15.0
+    return np.mod(mlt, 24.0).values
+
 def prepare_pretrain(path):
     """Prepares the 11-year OMNI pre-training dataset."""
     print(f"\n[STAGE 1] Loading pre-training data from {path}...")
@@ -182,8 +195,8 @@ def prepare_pretrain(path):
         if col not in df.columns:
             df[col] = 0.0
 
-    # Calculate MLT (assuming GOES-16 baseline longitude of -75 degrees)
-    mlt = (df.index.hour + df.index.minute / 60.0 - 75 / 15.0) % 24
+    # Calculate MLT using Equation of Time (assuming GOES-16 baseline longitude of -75 degrees)
+    mlt = calculate_mlt_vectorized(df.index, satellite_lon=-75.0)
     df['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
     df['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
@@ -223,8 +236,8 @@ def prepare_finetune(path):
         if col not in df.columns:
             df[col] = 0.0
 
-    # Calculate MLT (assuming GOES-16 baseline longitude of -75 degrees)
-    mlt = (df.index.hour + df.index.minute / 60.0 - 75 / 15.0) % 24
+    # Calculate MLT using Equation of Time (assuming GOES-16 baseline longitude of -75 degrees)
+    mlt = calculate_mlt_vectorized(df.index, satellite_lon=-75.0)
     df['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
     df['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
@@ -262,8 +275,8 @@ def prepare_validation(path):
         if col not in df.columns:
             df[col] = 0.0
 
-    # Calculate MLT (assuming GOES-16 baseline longitude of -75 degrees)
-    mlt = (df.index.hour + df.index.minute / 60.0 - 75 / 15.0) % 24
+    # Calculate MLT using Equation of Time (assuming GOES-16 baseline longitude of -75 degrees)
+    mlt = calculate_mlt_vectorized(df.index, satellite_lon=-75.0)
     df['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
     df['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
