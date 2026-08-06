@@ -110,14 +110,21 @@ def load_storm_from_csv(name):
         df_storm.rename(columns=rename_map, inplace=True)
         
         # Clean NOAA/OMNI missing data fill values to prevent massive unphysical spikes
-        # Common fill values include 99999, 9999, 999.99, 999.9, 999, 99.99, 99
+        # Common fill values used by NOAA/OMNI: 99999, 9999, 999.99, 999.9, 999, 99.99, 99
         missing_vals = [99999.9, 99999.0, 9999.99, 9999.0, 999.99, 999.9, 999.0, 99.99, 99.0]
         df_storm.replace(missing_vals, np.nan, inplace=True)
         
-        # Smoothly interpolate across any missing gaps
-        df_storm.interpolate(method='linear', limit_direction='both', inplace=True)
-        df_storm.bfill(inplace=True)
-        df_storm.ffill(inplace=True)
+        # Interpolate only numeric columns to avoid crashing on any leftover string/object columns
+        num_cols = df_storm.select_dtypes(include=[np.number]).columns
+        df_storm[num_cols] = df_storm[num_cols].interpolate(method='linear', limit_direction='both')
+        df_storm[num_cols] = df_storm[num_cols].bfill().ffill()
+        
+        # Hard physical clipping: erase any values that are still physically impossible after interpolation
+        for col, lo, hi in [('Vsw', 200, 900), ('Pdyn', 0.01, 60), ('Np', 0, 100),
+                             ('BZ_GSM', -80, 80), ('BY_GSM', -80, 80), ('BX_GSM', -80, 80),
+                             ('AE', 0, 4000), ('KP', 0, 9)]:
+            if col in df_storm.columns:
+                df_storm[col] = df_storm[col].clip(lower=lo, upper=hi)
 
         # Derive any missing columns the UI needs
         if 'flux' in df_storm.columns and 'log_flux' not in df_storm.columns:

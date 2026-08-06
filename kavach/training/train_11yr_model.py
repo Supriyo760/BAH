@@ -96,9 +96,10 @@ def train_11yr_model(data_path: str = "kavach/data/archive_11yr_goes_grasp.csv",
     # Clean NOAA/OMNI missing data fill values before training
     missing_vals = [99999.9, 99999.0, 9999.99, 9999.0, 999.99, 999.9, 999.0, 999, 99.99, 99.0, 99]
     df.replace(missing_vals, np.nan, inplace=True)
-    df.interpolate(method='linear', limit_direction='both', inplace=True)
-    df.bfill(inplace=True)
-    df.ffill(inplace=True)
+    # Only interpolate numeric columns to avoid crash on datetime/string columns
+    num_cols = df.select_dtypes(include=[np.number]).columns
+    df[num_cols] = df[num_cols].interpolate(method='linear', limit_direction='both')
+    df[num_cols] = df[num_cols].bfill().ffill()
     
     print(f"[KAVACH-TRAIN] Loaded and cleaned {len(df):,} observations in {time.time() - t0:.2f} seconds.")
     
