@@ -137,11 +137,26 @@ FEATURE_COLS = [
 ]
 SEQ_LEN, PRED_LEN = 288, 144
 
+# Shared NOAA/OMNI missing data fill values (used across all prepare functions)
+NOAA_FILL_VALS = [99999.9, 99999.0, 9999.99, 9999.0, 999.99, 999.9, 999.0, 99.99, 99.0]
+
 def prepare_pretrain(path):
     """Prepares the 11-year OMNI pre-training dataset."""
     print(f"\n[STAGE 1] Loading pre-training data from {path}...")
     df = pd.read_csv(path, parse_dates=['datetime'], index_col='datetime')
     df.sort_index(inplace=True)
+
+    # FIX 1: Exclude March 2015 — it is the held-out validation period.
+    # Including it in pre-training causes data leakage and inflates validation RMSE.
+    df = df[~((df.index.year == 2015) & (df.index.month == 3))]
+    rows_excluded = 0
+    print(f"[STAGE 1] Excluded March 2015 from pre-training to prevent validation leakage.")
+
+    # FIX 2: Replace NOAA/OMNI missing value placeholders before they pollute the model
+    num_cols = df.select_dtypes(include=[np.number]).columns
+    df[num_cols] = df[num_cols].replace(NOAA_FILL_VALS, np.nan)
+    df[num_cols] = df[num_cols].interpolate(method='linear', limit_direction='both')
+    df[num_cols] = df[num_cols].bfill().ffill()
 
     # Rename to standard feature names
     rename = {
@@ -161,7 +176,7 @@ def prepare_pretrain(path):
     df['F10.7_index'] = df.get('F10.7_index', df.get('F10.7', 70.0))
     df['AE'] = df.get('AE', 100.0)
     df['DST'] = df.get('DST', df.get('Dst', -10.0))
-    
+
     # Ensure all 10 features exist safely
     for col in FEATURE_COLS:
         if col not in df.columns:
@@ -182,17 +197,23 @@ def prepare_finetune(path):
     df = pd.read_csv(path, parse_dates=['datetime'], index_col='datetime')
     df.sort_index(inplace=True)
 
+    # FIX 2: Replace NOAA missing value placeholders before they pollute the model
+    num_cols = df.select_dtypes(include=[np.number]).columns
+    df[num_cols] = df[num_cols].replace(NOAA_FILL_VALS, np.nan)
+    df[num_cols] = df[num_cols].interpolate(method='linear', limit_direction='both')
+    df[num_cols] = df[num_cols].bfill().ffill()
+
     df['log_electron_flux'] = np.log10(np.maximum(df.get('Electron_Flux', df.get('electron_flux', 1e-5)), 1e-5))
-    
+
     # Map standard feature names for the strict 10-feature architecture
     df['BY_GSM'] = df.get('BY_GSM', df.get('BY', df.get('By_GSM', 0.0)))
     df['BZ_GSM'] = df.get('BZ_GSM', df.get('BZ', df.get('Bz_GSM', 0.0)))
     df['Vsw'] = df.get('Vsw', df.get('V', df.get('Flow_Speed', 400.0)))
-    
+
     # Calculate Pdyn if missing (Density is in cm^-3, V is in km/s)
     default_pdyn = 0.5 * 1.67e-27 * (df.get('Density', 5.0)*1e6) * (df.get('V', 400.0)*1e3)**2 * 1e9
     df['Pdyn'] = df.get('Pdyn', df.get('Flow_Pressure', default_pdyn))
-    
+
     df['F10.7_index'] = df.get('F10.7_index', df.get('F10.7', 70.0))
     df['AE'] = df.get('AE', 100.0)
     df['DST'] = df.get('DST', df.get('Dst', -10.0))
@@ -217,11 +238,17 @@ def prepare_validation(path):
     df = pd.read_csv(path, parse_dates=['datetime'], index_col='datetime')
     df.sort_index(inplace=True)
 
+    # FIX 2: Replace NOAA missing value placeholders before they pollute the validation metrics
+    num_cols = df.select_dtypes(include=[np.number]).columns
+    df[num_cols] = df[num_cols].replace(NOAA_FILL_VALS, np.nan)
+    df[num_cols] = df[num_cols].interpolate(method='linear', limit_direction='both')
+    df[num_cols] = df[num_cols].bfill().ffill()
+
     # Standardize column names for the 10-feature architecture
     if 'electron_flux' in df.columns:
         df['log_electron_flux'] = df['log_electron_flux'] if 'log_electron_flux' in df.columns \
                                   else np.log10(np.maximum(df['electron_flux'], 1e-5))
-                                  
+
     df['BY_GSM'] = df.get('BY_GSM', df.get('By_gsm', df.get('BY', 0.0)))
     df['BZ_GSM'] = df.get('BZ_GSM', df.get('Bz_gsm', df.get('BZ', 0.0)))
     df['Vsw'] = df.get('Vsw', df.get('Flow_Speed', df.get('V', 400.0)))
