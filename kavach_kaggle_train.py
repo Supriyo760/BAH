@@ -138,7 +138,7 @@ FEATURE_COLS = [
 SEQ_LEN, PRED_LEN = 288, 144
 
 # Shared NOAA/OMNI missing data fill values (used across all prepare functions)
-NOAA_FILL_VALS = [99999.9, 99999.0, 9999.99, 9999.0, 999.99, 999.9, 999.0, 99.99, 99.0]
+NOAA_FILL_VALS = [9999999.0, 99999.9, 99999.0, 9999.99, 9999.0, 999.99, 999.9, 999.0, 99.99, 99.0]
 
 def calculate_mlt_vectorized(dt_index: pd.DatetimeIndex, satellite_lon: float) -> np.ndarray:
     """Vectorized MLT calculation using Equation of Time (EoT) and Subsolar Longitude."""
