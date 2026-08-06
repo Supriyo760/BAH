@@ -179,7 +179,7 @@ STORM_META = {
     "G4 Aurora Storm (Oct 2024)":       {"min_dst":-269,"max_kp":8,"desc":"Severe G4 storm caused by a fast halo CME. Benchmark dataset extracted natively from OMNI and GOES-16."},
 }
 
-WEIGHTS_VERSION = "v10"  # bump to bust Streamlit @cache_resource
+WEIGHTS_VERSION = "v11"  # bump to bust Streamlit @cache_resource
 
 @st.cache_resource
 def load_kavach_model(_version=WEIGHTS_VERSION):
@@ -260,17 +260,18 @@ def run_tft_inference(df, is_grasp=False):
         data_matrix = df_copy[feature_cols].values
         
         if tft_scaler_instance is not None and isinstance(tft_scaler_instance, dict) and 'mean' in tft_scaler_instance and 'std' in tft_scaler_instance:
+            safe_std = np.maximum(tft_scaler_instance['std'], 1e-2)
             if tft_scaler_instance['mean'].shape[1] == data_matrix.shape[1]:
-                norm_x = (data_matrix - tft_scaler_instance['mean']) / tft_scaler_instance['std']
+                norm_x = (data_matrix - tft_scaler_instance['mean']) / safe_std
             else:
                 mean = np.mean(data_matrix, axis=0, keepdims=True)
-                std = np.std(data_matrix, axis=0, keepdims=True) + 1e-7
+                std = np.maximum(np.std(data_matrix, axis=0, keepdims=True), 1e-2)
                 mean[:, 0] = 0.0
                 std[:, 0] = 1.0
                 norm_x = (data_matrix - mean) / std
         else:
             mean = np.mean(data_matrix, axis=0, keepdims=True)
-            std  = np.std(data_matrix,  axis=0, keepdims=True) + 1e-7
+            std  = np.maximum(np.std(data_matrix,  axis=0, keepdims=True), 1e-2)
             mean[:, 0] = 0.0
             std[:, 0]  = 1.0
             norm_x = (data_matrix - mean) / std
@@ -327,11 +328,12 @@ def run_continuous_validation(df, storm_name, is_grasp=False):
         data_matrix = df_copy[feature_cols].values
         
         if tft_scaler_instance is not None and isinstance(tft_scaler_instance, dict):
+            safe_std = np.maximum(tft_scaler_instance['std'], 1e-2)
             if tft_scaler_instance['mean'].shape[1] == data_matrix.shape[1]:
-                norm_x = (data_matrix - tft_scaler_instance['mean']) / tft_scaler_instance['std']
+                norm_x = (data_matrix - tft_scaler_instance['mean']) / safe_std
             else:
                 mean = np.mean(data_matrix, axis=0, keepdims=True)
-                std = np.std(data_matrix, axis=0, keepdims=True) + 1e-7
+                std = np.maximum(np.std(data_matrix, axis=0, keepdims=True), 1e-2)
                 mean[:, 0] = 0.0; std[:, 0] = 1.0
                 norm_x = (data_matrix - mean) / std
         else:
