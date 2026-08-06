@@ -55,7 +55,7 @@ def run_physics_forecast(current_log_flux, current_Kp, max_kp_72h, utc_hour, is_
     
     # Chorus wave acceleration (Recovery Phase)
     # If the storm is over (current_Kp is low) but max_kp_72h was high, electrons are strongly accelerated over several days
-    recovery_drive = 0.12 * max(max_kp_72h - 4.0, 0.0) * max(3.5 - current_Kp, 0.0)
+    recovery_drive = 0.12 * max(max_kp_72h - 3.0, 0.0) * max(4.0 - current_Kp, 0.0)
     
     decay = 0.05
     drive = 0.08 * max(current_Kp - 2.0, 0.0) + recovery_drive

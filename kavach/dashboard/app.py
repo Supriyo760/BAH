@@ -515,7 +515,7 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     
     # Base physics trust is 40%
     physics_weight = 0.4
-    if max_kp_72h > 5.0 and kp < 4.0:
+    if max_kp_72h > 3.5 and kp < 4.0:
         # We are in the recovery phase! The physics model is much more accurate here.
         physics_weight = 0.85
         
