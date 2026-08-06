@@ -496,6 +496,12 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
     tft_f_P50 = tft_quantiles[:, 2]  # Median forecast
     raw_P75 = tft_quantiles[:, 3]
     
+    # Smooth the raw neural network output to eliminate high-frequency jitter for the operator dashboard
+    tft_f_P50 = pd.Series(tft_f_P50).rolling(window=9, min_periods=1, center=True).mean().values
+    raw_P25 = pd.Series(raw_P25).rolling(window=9, min_periods=1, center=True).mean().values
+    raw_P75 = pd.Series(raw_P75).rolling(window=9, min_periods=1, center=True).mean().values
+
+    
     # --- OPERATIONAL FORECAST ANCHORING (NOISE-RESISTANT) ---
     # Instead of permanently dragging the entire 12h forecast down/up due to a single noisy last observation,
     # or a 1-hour window that might contain a dropout, we anchor the core forecast to the robust 6-hour median!
