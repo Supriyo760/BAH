@@ -179,7 +179,7 @@ STORM_META = {
     "G4 Aurora Storm (Oct 2024)":       {"min_dst":-269,"max_kp":8,"desc":"Severe G4 storm caused by a fast halo CME. Benchmark dataset extracted natively from OMNI and GOES-16."},
 }
 
-WEIGHTS_VERSION = "v14"  # bump to bust Streamlit @cache_resource
+WEIGHTS_VERSION = "v15"  # bump to bust Streamlit @cache_resource
 
 @st.cache_resource
 def load_kavach_model(_version=WEIGHTS_VERSION):
@@ -259,22 +259,18 @@ def run_tft_inference(df, is_grasp=False):
 
         data_matrix = df_copy[feature_cols].values
         
-        if tft_scaler_instance is not None and isinstance(tft_scaler_instance, dict) and 'mean' in tft_scaler_instance and 'std' in tft_scaler_instance:
-            safe_std = np.maximum(tft_scaler_instance['std'], 1e-2)
-            if tft_scaler_instance['mean'].shape[1] == data_matrix.shape[1]:
-                norm_x = (data_matrix - tft_scaler_instance['mean']) / safe_std
-            else:
-                mean = np.mean(data_matrix, axis=0, keepdims=True)
-                std = np.maximum(np.std(data_matrix, axis=0, keepdims=True), 1e-2)
-                mean[:, 0] = 0.0
-                std[:, 0] = 1.0
-                norm_x = (data_matrix - mean) / std
-        else:
-            mean = np.mean(data_matrix, axis=0, keepdims=True)
-            std  = np.maximum(np.std(data_matrix,  axis=0, keepdims=True), 1e-2)
-            mean[:, 0] = 0.0
-            std[:, 0]  = 1.0
-            norm_x = (data_matrix - mean) / std
+        # Dynamic test-time normalization: compute mean/std directly from this window.
+        # This exactly matches the training script (kavach_kaggle_train.py line 291-295)
+        # which used per-batch statistics, NOT the saved scaler.pkl.
+        # The saved scaler.pkl was built from corrupted Kaggle data containing 9999.9
+        # missing-value placeholders (e.g. Pdyn mean=632 nPa vs physical 2 nPa),
+        # causing severe under-prediction of storm severity. Bypassing it here.
+        mean = np.mean(data_matrix, axis=0, keepdims=True)
+        std  = np.maximum(np.std(data_matrix, axis=0, keepdims=True), 1e-2)
+        # Pin log_flux (feature 0) to mean=0, std=1 — identical to training convention
+        mean[:, 0] = 0.0
+        std[:, 0]  = 1.0
+        norm_x = (data_matrix - mean) / std
             
         # Ensure we have exactly 288 steps (pad with zeros if necessary)
         if len(norm_x) < 288:
@@ -327,17 +323,12 @@ def run_continuous_validation(df, storm_name, is_grasp=False, _version=WEIGHTS_V
         
         data_matrix = df_copy[feature_cols].values
         
-        if tft_scaler_instance is not None and isinstance(tft_scaler_instance, dict):
-            safe_std = np.maximum(tft_scaler_instance['std'], 1e-2)
-            if tft_scaler_instance['mean'].shape[1] == data_matrix.shape[1]:
-                norm_x = (data_matrix - tft_scaler_instance['mean']) / safe_std
-            else:
-                mean = np.mean(data_matrix, axis=0, keepdims=True)
-                std = np.maximum(np.std(data_matrix, axis=0, keepdims=True), 1e-2)
-                mean[:, 0] = 0.0; std[:, 0] = 1.0
-                norm_x = (data_matrix - mean) / std
-        else:
-            norm_x = data_matrix
+        # Same dynamic normalization as run_tft_inference — bypass corrupted scaler.pkl
+        mean = np.mean(data_matrix, axis=0, keepdims=True)
+        std  = np.maximum(np.std(data_matrix, axis=0, keepdims=True), 1e-2)
+        mean[:, 0] = 0.0
+        std[:, 0]  = 1.0
+        norm_x = (data_matrix - mean) / std
 
         seq_len = 288
         if len(norm_x) <= seq_len: return None, None, None
