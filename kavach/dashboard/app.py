@@ -465,9 +465,7 @@ if st.sidebar.button("SYNC GPU WEIGHTS"):
             st.sidebar.warning(f"Repo not found or private: {e}")
 
 # ─── Current Row ──────────────────────────────────────────────────────────────
-df_current = df_full.iloc[:step+1] if (mode == "Historical Storm Replay" and 'step' in locals()) else df
-
-row      = df_current.iloc[-1]
+row      = df.iloc[-1]
 log_flux = float(row["log_flux"])
 flux     = float(row["flux"])
 kp       = float(row["KP"])
@@ -478,20 +476,20 @@ ulf      = float(row["ULF_power"])
 regime   = int(row["regime"])
 
 # Calculate current UTC hour for MLT physics injection
-utc_hour = float(df_current.index[-1].hour) + float(df_current.index[-1].minute) / 60.0
+utc_hour = float(df.index[-1].hour) + float(df.index[-1].minute) / 60.0
 
 # Calculate max Kp over the last 72 hours (3 days) to give the physics model long-term storm memory for recovery phase acceleration
-max_kp_72h = float(df_current['KP'].iloc[-864:].max()) if len(df_current) >= 864 else float(df_current['KP'].max())
+max_kp_72h = float(df['KP'].iloc[-864:].max()) if len(df) >= 864 else float(df['KP'].max())
 
 # Use 6-hour median to determine the true macro-state of the radiation belts, immune to narrow dropouts
-core_state = float(df_current['log_flux'].iloc[-72:].median()) if len(df_current) >= 72 else float(df_current['log_flux'].median())
+core_state = float(df['log_flux'].iloc[-72:].median()) if len(df) >= 72 else float(df['log_flux'].median())
 
 # Execute PyTorch TFT Model Inference if available
 is_grasp_selected = "GSAT-19" in target_satellite
 
 # Get baseline GOES prediction to calculate the systemic DC offset of the neural network
-goes_quantiles, _ = run_tft_inference(df_current, is_grasp=False)
-tft_quantiles, tft_attn = run_tft_inference(df_current, is_grasp=is_grasp_selected)
+goes_quantiles, _ = run_tft_inference(df, is_grasp=False)
+tft_quantiles, tft_attn = run_tft_inference(df, is_grasp=is_grasp_selected)
 phys = physics_forecast(core_state, kp, max_kp_72h, utc_hour, is_grasp=is_grasp_selected)
 
 if tft_quantiles is not None and len(tft_quantiles) == 144:
@@ -934,8 +932,8 @@ st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
 # ─── Subsequent Parameters Multi-Graph ─────────────────────────────────────────
 # Restrict parameter graphs to exactly 24 hours (288 samples) to avoid NOAA missing data flatlines
-hist_n_params = min(len(df_current), 288)
-t_hist_params = df_current.index[-hist_n_params:]
+hist_n = min(len(df), 288)
+t_hist = df.index[-hist_n:]
 
 st.markdown('<p class="section-label">Multiparameter Historical Solar Wind Driver State (Last 24h)</p>', unsafe_allow_html=True)
 
@@ -954,9 +952,9 @@ for annotation in fig_params['layout']['annotations']:
     annotation['font'] = dict(size=12, color="#2563EB", family="Space Mono")
 
 # R1: IMF Bx, By, Bz
-fig_params.add_trace(go.Scatter(x=t_hist_params, y=df_current["BX_GSM"].values[-hist_n_params:], name="Bx (GSM)", line=dict(color="#F59E0B", width=1.5)), row=1, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist_params, y=df_current.get("BY_GSM", pd.Series(0, index=df_current.index)).values[-hist_n_params:], name="By (GSM)", line=dict(color="#2563EB", width=1.5)), row=1, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist_params, y=df_current["BZ_GSM"].values[-hist_n_params:], name="Bz (GSM)", line=dict(color="#DC2626", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["BX_GSM"].values[-hist_n:], name="Bx (GSM)", line=dict(color="#F59E0B", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("BY_GSM", pd.Series(0, index=df.index)).values[-hist_n:], name="By (GSM)", line=dict(color="#2563EB", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df["BZ_GSM"].values[-hist_n:], name="Bz (GSM)", line=dict(color="#DC2626", width=1.5)), row=1, col=1)
 
 # R2: Solar Wind Vx, Vy, Vz
 vsw_arr = df["Vsw"].values[-hist_n:]
