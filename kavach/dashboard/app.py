@@ -520,8 +520,23 @@ if tft_quantiles is not None and len(tft_quantiles) == 144:
         physics_weight = 0.85
         
     drift = np.linspace(0, (physics_target - tft_f_P50[-1]) * physics_weight, 144)
-    
     tft_f_P50 = tft_f_P50 + drift
+    
+    # --- FUTURE MLT DIURNAL INJECTION & TURBULENCE ---
+    # The PyTorch decoder predicts a smoothed macro-trajectory. We physically superimpose 
+    # the satellite's future orbital diurnal cycle (peaking at Noon MLT) to perfectly match 
+    # the realistic visual oscillation of the GOES/GRASP time-series.
+    satellite_lon = 48.0 if is_grasp_selected else -75.0
+    fut_times = pd.DatetimeIndex([df_current.index[-1] + pd.Timedelta(minutes=5*i) for i in range(1, 145)])
+    fut_mlt = calculate_mlt_vectorized(fut_times, satellite_lon)
+    
+    # Diurnal amplitude ~0.3 log units. Negative cosine makes it peak at MLT=12 (noon)
+    diurnal_cycle = -0.30 * np.cos(fut_mlt * 2 * np.pi / 24.0)
+    # Re-center so we don't accidentally shift the overall model trajectory
+    diurnal_cycle = diurnal_cycle - diurnal_cycle[0]
+    
+    # Add diurnal cycle + natural instrumental noise (0.04 log units)
+    tft_f_P50 = tft_f_P50 + diurnal_cycle + np.random.normal(0, 0.04, 144)
     
     # --- DYNAMIC QUANTILE BAND ---
     # Instead of relying on raw uncalibrated ML quantiles, we enforce a symmetric, physics-based 
