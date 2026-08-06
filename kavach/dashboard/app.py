@@ -943,6 +943,7 @@ st.markdown('<p class="section-label">Multiparameter Historical Solar Wind Drive
 fig_params = make_subplots(
     rows=4, cols=1, shared_xaxes=True,
     vertical_spacing=0.04,
+    specs=[[{}], [{}], [{"secondary_y": True}], [{}]],
     subplot_titles=(
         "IMF Magnetic Field Vectors (nT)", 
         "Solar Wind Velocity (km/s)", 
@@ -967,9 +968,9 @@ fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw_arr), name="Vz (Ap
 
 # R3: Psw, AE, DST
 psw = df_plot.get("Pdyn", pd.Series(2.0, index=df_plot.index)).values[-hist_n:]
-fig_params.add_trace(go.Scatter(x=t_hist, y=psw * 10, name="Psw (x10) (nPa)", line=dict(color="#7C3AED", width=1.5)), row=3, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=df_plot.get("AE", pd.Series(100, index=df_plot.index)).values[-hist_n:], name="AE (nT)", line=dict(color="#0284C7", width=1.5)), row=3, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=df_plot["DST"].values[-hist_n:], name="Dst (nT)", line=dict(color="#E11D48", width=1.5)), row=3, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=psw * 10, name="Psw (x10) (nPa)", line=dict(color="#7C3AED", width=1.5)), row=3, col=1, secondary_y=False)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df_plot.get("AE", pd.Series(100, index=df_plot.index)).values[-hist_n:], name="AE (nT)", line=dict(color="#0284C7", width=1.5, dash="dot")), row=3, col=1, secondary_y=True)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df_plot["DST"].values[-hist_n:], name="Dst (nT)", line=dict(color="#E11D48", width=1.5)), row=3, col=1, secondary_y=False)
 
 # R4: MLT displayed as raw 0-24h for operator readability
 # We additionally plot visually scaled Sine/Cosine waves so the operator 
@@ -1014,7 +1015,8 @@ for i in range(1, 5):
 
 fig_params.update_yaxes(title_text="Field (nT)", row=1, col=1)
 fig_params.update_yaxes(title_text="Speed (km/s)", row=2, col=1)
-fig_params.update_yaxes(title_text="Value", row=3, col=1)
+fig_params.update_yaxes(title_text="Psw, Dst", row=3, col=1, secondary_y=False)
+fig_params.update_yaxes(title_text="AE (nT)", row=3, col=1, secondary_y=True, showgrid=False)
 fig_params.update_yaxes(title_text="Time (Hours)", range=[0, 24], dtick=4, row=4, col=1)
 fig_params.update_xaxes(showgrid=True, gridcolor="#E2E8F0", linecolor="#CBD5E1", title_font=dict(color="#000000"), tickfont=dict(color="#000000"), row=4, col=1)
 
