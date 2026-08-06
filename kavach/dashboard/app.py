@@ -179,13 +179,13 @@ STORM_META = {
     "G4 Aurora Storm (Oct 2024)":       {"min_dst":-269,"max_kp":8,"desc":"Severe G4 storm caused by a fast halo CME. Benchmark dataset extracted natively from OMNI and GOES-16."},
 }
 
-WEIGHTS_VERSION = "v9"  # bump to bust Streamlit @cache_resource
+WEIGHTS_VERSION = "v10"  # bump to bust Streamlit @cache_resource
 
 @st.cache_resource
 def load_kavach_model(_version=WEIGHTS_VERSION):
     """Loads the PyTorch TFT weights and the global feature scaler."""
-    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'tft_mentor_model.pth'))
-    scaler_path  = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler_mentor.pkl'))
+    weights_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'finetuned_gsat19_grasp_ulf.pth'))
+    scaler_path  = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'scaler.pkl'))
     model = None
     scaler = None
     if os.path.exists(weights_path):
