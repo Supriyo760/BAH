@@ -554,9 +554,9 @@ f30m, a30m, u30m = ensemble(ml_30m, phys["T+30m"], regime)
 f6h,  a6h,  u6h  = ensemble(ml_6h,  phys["T+6h"],  regime)
 f12h, a12h, u12h = ensemble(ml_12h, phys["T+12h"], regime)
 
-r30m, msg30m = risk_level(f30m, u30m)
-r6h,  msg6h  = risk_level(f6h,  u6h)
-r12h, msg12h = risk_level(f12h, u12h)
+r30m, msg30m = risk_level(f30m, u30m, kp=kp, dst=dst)
+r6h,  msg6h  = risk_level(f6h,  u6h,  kp=kp, dst=dst)
+r12h, msg12h = risk_level(f12h, u12h, kp=kp, dst=dst)
 mean_agree   = float(np.mean([a30m, a6h, a12h]) * 100)
 
 # Confidence is now derived from the AI's internal mathematical uncertainty (the P90-P10 gap)
