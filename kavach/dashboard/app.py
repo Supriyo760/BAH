@@ -931,9 +931,14 @@ if is_benchmark and 'validation_results' in locals():
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
 # ─── Subsequent Parameters Multi-Graph ─────────────────────────────────────────
-# Restrict parameter graphs to exactly 24 hours (288 samples) to avoid NOAA missing data flatlines
-hist_n = min(len(df), 288)
-t_hist = df.index[-hist_n:]
+# In benchmark mode, show 24h of data ending at the slider cursor position.
+# In all other modes, show the last 24h of live data as normal.
+if mode == "Historical Storm Replay" and 'df_full' in locals() and 'step' in locals():
+    df_plot = df_full.iloc[max(0, step-287):step+1]
+else:
+    df_plot = df
+hist_n = min(len(df_plot), 288)
+t_hist = df_plot.index[-hist_n:]
 
 st.markdown('<p class="section-label">Multiparameter Historical Solar Wind Driver State (Last 24h)</p>', unsafe_allow_html=True)
 
@@ -952,21 +957,21 @@ for annotation in fig_params['layout']['annotations']:
     annotation['font'] = dict(size=12, color="#2563EB", family="Space Mono")
 
 # R1: IMF Bx, By, Bz
-fig_params.add_trace(go.Scatter(x=t_hist, y=df["BX_GSM"].values[-hist_n:], name="Bx (GSM)", line=dict(color="#F59E0B", width=1.5)), row=1, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("BY_GSM", pd.Series(0, index=df.index)).values[-hist_n:], name="By (GSM)", line=dict(color="#2563EB", width=1.5)), row=1, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=df["BZ_GSM"].values[-hist_n:], name="Bz (GSM)", line=dict(color="#DC2626", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df_plot["BX_GSM"].values[-hist_n:], name="Bx (GSM)", line=dict(color="#F59E0B", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df_plot.get("BY_GSM", pd.Series(0, index=df_plot.index)).values[-hist_n:], name="By (GSM)", line=dict(color="#2563EB", width=1.5)), row=1, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df_plot["BZ_GSM"].values[-hist_n:], name="Bz (GSM)", line=dict(color="#DC2626", width=1.5)), row=1, col=1)
 
 # R2: Solar Wind Vx, Vy, Vz
-vsw_arr = df["Vsw"].values[-hist_n:]
+vsw_arr = df_plot["Vsw"].values[-hist_n:]
 fig_params.add_trace(go.Scatter(x=t_hist, y=-vsw_arr, name="Vx (Approx)", line=dict(color="#059669", width=1.5)), row=2, col=1)
 fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw_arr), name="Vy (Approx)", line=dict(color="#D97706", dash="dash", width=1.5)), row=2, col=1)
 fig_params.add_trace(go.Scatter(x=t_hist, y=np.zeros_like(vsw_arr), name="Vz (Approx)", line=dict(color="#7C3AED", dash="dot", width=1.5)), row=2, col=1)
 
 # R3: Psw, AE, DST
-psw = df.get("Pdyn", pd.Series(2.0, index=df.index)).values[-hist_n:]
+psw = df_plot.get("Pdyn", pd.Series(2.0, index=df_plot.index)).values[-hist_n:]
 fig_params.add_trace(go.Scatter(x=t_hist, y=psw * 10, name="Psw (x10) (nPa)", line=dict(color="#7C3AED", width=1.5)), row=3, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("AE", pd.Series(100, index=df.index)).values[-hist_n:], name="AE (nT)", line=dict(color="#0284C7", width=1.5)), row=3, col=1)
-fig_params.add_trace(go.Scatter(x=t_hist, y=df["DST"].values[-hist_n:], name="Dst (nT)", line=dict(color="#E11D48", width=1.5)), row=3, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df_plot.get("AE", pd.Series(100, index=df_plot.index)).values[-hist_n:], name="AE (nT)", line=dict(color="#0284C7", width=1.5)), row=3, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=df_plot["DST"].values[-hist_n:], name="Dst (nT)", line=dict(color="#E11D48", width=1.5)), row=3, col=1)
 
 # R4: MLT displayed as raw 0-24h for operator readability
 # We additionally plot visually scaled Sine/Cosine waves so the operator 
@@ -1047,10 +1052,10 @@ if not isro_unlocked:
     )
     st.plotly_chart(fig_grasp, use_container_width=True, theme=None)
 else:
-    goes_flux = df['flux'].values[-hist_n:]
+    goes_flux = df_plot['flux'].values[-hist_n:]
     ind_mlt = (mlt_hours + 8.2) % 24
     goes_log = np.log10(np.maximum(goes_flux, 1.0))
-    kp_array = df['KP'].values[-hist_n:]
+    kp_array = df_plot['KP'].values[-hist_n:]
     dawn_mask_ind = ((ind_mlt > 3) & (ind_mlt < 9)).astype(float)
     dawn_mask_goes = ((mlt_hours > 3) & (mlt_hours < 9)).astype(float)
     gsat_log = goes_log + 0.15 + (dawn_mask_ind - dawn_mask_goes) * (kp_array / 9.0) * 0.5
