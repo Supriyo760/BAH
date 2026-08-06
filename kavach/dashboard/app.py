@@ -781,9 +781,9 @@ fig_params.add_trace(go.Scatter(x=t_hist, y=psw * 10, name="Psw (x10) (nPa)", li
 fig_params.add_trace(go.Scatter(x=t_hist, y=df.get("AE", pd.Series(100, index=df.index)).values[-hist_n:], name="AE (nT)", line=dict(color="#0284C7", width=1.5)), row=3, col=1)
 fig_params.add_trace(go.Scatter(x=t_hist, y=df["DST"].values[-hist_n:], name="Dst (nT)", line=dict(color="#E11D48", width=1.5)), row=3, col=1)
 
-# R4: MLT
-hist_lon_offset = 48 / 15.0 if is_grasp_selected else -75 / 15.0
-mlt_hours = (t_hist.hour + t_hist.minute/60.0 + hist_lon_offset) % 24
+# R4: MLT (using precise Equation of Time — mentor's method)
+hist_sat_lon = 48.0 if is_grasp_selected else -75.0
+mlt_hours = calculate_mlt_vectorized(t_hist, hist_sat_lon)
 fig_params.add_trace(go.Scatter(x=t_hist, y=mlt_hours, name="MLT (Hours)", line=dict(color="#EA580C", width=1.5)), row=4, col=1)
 
 fig_params.update_layout(
