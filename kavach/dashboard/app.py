@@ -179,7 +179,7 @@ STORM_META = {
     "G4 Aurora Storm (Oct 2024)":       {"min_dst":-269,"max_kp":8,"desc":"Severe G4 storm caused by a fast halo CME. Benchmark dataset extracted natively from OMNI and GOES-16."},
 }
 
-WEIGHTS_VERSION = "v15"  # bump to bust Streamlit @cache_resource
+WEIGHTS_VERSION = "v16"  # bump to bust Streamlit @cache_resource
 
 @st.cache_resource
 def load_kavach_model(_version=WEIGHTS_VERSION):
