@@ -757,7 +757,7 @@ fig_params = make_subplots(
         "IMF Magnetic Field Vectors (nT)", 
         "Solar Wind Velocity (km/s)", 
         "Geomagnetic Indices & Pressure (Psw, AE, Dst)", 
-        "Orbital Position (Magnetic Local Time)"
+        "Cyclical Magnetic Local Time (Sine / Cosine)"
     )
 )
 
@@ -784,7 +784,11 @@ fig_params.add_trace(go.Scatter(x=t_hist, y=df["DST"].values[-hist_n:], name="Ds
 # R4: MLT (using precise Equation of Time — mentor's method)
 hist_sat_lon = 48.0 if is_grasp_selected else -75.0
 mlt_hours = calculate_mlt_vectorized(t_hist, hist_sat_lon)
-fig_params.add_trace(go.Scatter(x=t_hist, y=mlt_hours, name="MLT (Hours)", line=dict(color="#EA580C", width=1.5)), row=4, col=1)
+mlt_sin = np.sin(mlt_hours * 2 * np.pi / 24)
+mlt_cos = np.cos(mlt_hours * 2 * np.pi / 24)
+
+fig_params.add_trace(go.Scatter(x=t_hist, y=mlt_sin, name="MLT Sin", line=dict(color="#EA580C", width=1.5)), row=4, col=1)
+fig_params.add_trace(go.Scatter(x=t_hist, y=mlt_cos, name="MLT Cos", line=dict(color="#059669", width=1.5, dash="dot")), row=4, col=1)
 
 fig_params.update_layout(
     height=720,
