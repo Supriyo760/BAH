@@ -162,49 +162,65 @@ def prepare_pretrain(path):
     df = pd.read_csv(path, parse_dates=['datetime'], index_col='datetime')
     df.sort_index(inplace=True)
 
-    # FIX 1: Exclude March 2015 — it is the held-out validation period.
-    # Including it in pre-training causes data leakage and inflates validation RMSE.
+    # Exclude March 2015 — it is now in the validation benchmark (Oct/May 2024 storms)
+    # but we keep this exclusion to avoid any future leakage if datasets overlap.
     df = df[~((df.index.year == 2015) & (df.index.month == 3))]
-    rows_excluded = 0
     print(f"[STAGE 1] Excluded March 2015 from pre-training to prevent validation leakage.")
 
-    # FIX 2: Replace NOAA/OMNI missing value placeholders before they pollute the model
+    # Replace NOAA/OMNI missing value placeholders before they pollute the model
     num_cols = df.select_dtypes(include=[np.number]).columns
     df[num_cols] = df[num_cols].replace(NOAA_FILL_VALS, np.nan)
     df[num_cols] = df[num_cols].interpolate(method='linear', limit_direction='both')
     df[num_cols] = df[num_cols].bfill().ffill()
 
-    # Rename to standard feature names
-    rename = {
-        'electron_flux': '_raw_flux',
-        'log_electron_flux': 'log_electron_flux',
-        'log_flux_t-1h': 'log_flux_t-1h',
-        'log_flux_t-3h': 'log_flux_t-3h',
-        'log_flux_t-24h': 'log_flux_t-24h',
-    }
-    df.rename(columns=rename, inplace=True)
+    # ── Correct column name mapping (actual CSV columns vs 10-feature architecture) ──
+    # Pre-training CSV uses: 'Bz_GSM', 'Flow_Speed', 'Flow_Pressure'
+    # Architecture expects:  'BZ_GSM', 'Vsw',        'Pdyn'
+    df['BZ_GSM'] = df.get('BZ_GSM', df.get('Bz_GSM', df.get('BZ', pd.Series(0.0, index=df.index))))
+    df['Vsw']    = df.get('Vsw',    df.get('Flow_Speed',  pd.Series(400.0, index=df.index)))
+    df['Pdyn']   = df.get('Pdyn',   df.get('Flow_Pressure', pd.Series(2.0, index=df.index)))
 
-    # Map standard feature names for the strict 10-feature architecture
-    df['BY_GSM'] = df.get('BY_GSM', df.get('By_GSM', df.get('BY', 0.0)))
-    df['BZ_GSM'] = df.get('BZ_GSM', df.get('Bz_GSM', df.get('BZ', 0.0)))
-    df['Vsw'] = df.get('Vsw', df.get('Flow_Speed', df.get('V', 400.0)))
-    df['Pdyn'] = df.get('Pdyn', df.get('Flow_Pressure', 2.0))
-    df['F10.7_index'] = df.get('F10.7_index', df.get('F10.7', 70.0))
-    df['AE'] = df.get('AE', 100.0)
-    df['DST'] = df.get('DST', df.get('Dst', -10.0))
+    # ── Physics-based proxies for features absent from pre-training CSV ──
+    # BY_GSM: no data available — use 0 (genuinely unavailable, model will learn it
+    #         matters only in fine-tuning where real values exist)
+    df['BY_GSM'] = df.get('BY_GSM', pd.Series(0.0, index=df.index))
+
+    # AE index proxy: Burton et al. (1975) — AE correlates with |Bz|*Vsw coupling
+    # AE ≈ 300 * |Bz| * Vsw / 1000  (rough but physically motivated)
+    bz_neg = np.minimum(df['BZ_GSM'].values, 0.0)          # only southward component drives AE
+    ae_proxy = 300.0 * np.abs(bz_neg) * df['Vsw'].values / 1000.0
+    df['AE'] = np.clip(ae_proxy, 0, 3000)
+
+    # Dst proxy: O'Brien & McPherron (2000) simplified injection term
+    # Dst ≈ -31 * sqrt(Pdyn) - 7.26 * Ey   where Ey = -Bz*Vsw/1000 (mV/m)
+    ey = -df['BZ_GSM'].values * df['Vsw'].values / 1000.0
+    dst_proxy = -31.0 * np.sqrt(np.maximum(df['Pdyn'].values, 0.1)) - 7.26 * np.maximum(ey, 0)
+    df['DST'] = np.clip(dst_proxy, -500, 50)
+
+    # F10.7 index proxy: varies with Solar Cycle 24/25.
+    # We use year-based interpolation (SC24 min ~65 in 2019, SC25 rising to ~150 by 2024)
+    year_frac = df.index.year + (df.index.dayofyear / 365.0)
+    # SC24 peaked ~2014 (F10.7~150), dipped ~2019 (F10.7~70), SC25 rising ~2024
+    sc24_f107 = 70 + 80 * np.abs(np.sin(np.pi * (year_frac - 2019) / 11.0))
+    df['F10.7_index'] = np.clip(sc24_f107, 65, 200)
 
     # Ensure all 10 features exist safely
     for col in FEATURE_COLS:
         if col not in df.columns:
             df[col] = 0.0
 
-    # Calculate MLT using Equation of Time (assuming GOES-16 baseline longitude of -75 degrees)
+    # Calculate MLT using Equation of Time (GOES-16 baseline longitude of -75 degrees)
     mlt = calculate_mlt_vectorized(df.index, satellite_lon=-75.0)
     df['MLT_sin'] = np.sin(mlt * 2 * np.pi / 24)
     df['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
     df.dropna(subset=FEATURE_COLS, inplace=True)
     print(f"[STAGE 1] Rows after cleaning: {len(df):,}")
+
+    # Sanity check — print per-feature std to confirm no flat columns remain
+    feature_stds = df[FEATURE_COLS].std().round(3)
+    print(f"[STAGE 1] Per-feature std check: {feature_stds.to_dict()}")
+
     return df[FEATURE_COLS].values.astype(np.float32)
 
 def prepare_finetune(path):
