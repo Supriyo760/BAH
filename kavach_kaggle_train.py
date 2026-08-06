@@ -365,49 +365,72 @@ def train_stage(model, X_tensor, y_tensor, epochs, lr, batch_size=32, label=""):
     print(f"[{label}] Best loss: {best_loss:.5f}")
     return model
 
-def evaluate(model, X_val_tensor, y_val_tensor):
-    """Compute validation RMSE on log-scale."""
+def evaluate(model, X_tensor, y_tensor, label="VALIDATION"):
+    """Compute RMSE and Linear Correlation on log-scale."""
     model.eval()
     with torch.no_grad():
-        preds, _ = model(X_val_tensor.to(DEVICE))
+        preds, _ = model(X_tensor.to(DEVICE))
         median   = preds[:, :, 2].cpu().numpy()  # P50
-        truth    = y_val_tensor.numpy()
-    rmse = np.sqrt(np.mean((median - truth) ** 2))
-    print(f"\n[VALIDATION] RMSE (log10 scale): {rmse:.4f}")
-    print(f"             Approx flux error:  {(10**rmse):.1f}× factor")
-    return rmse
+        truth    = y_tensor.numpy()
+    # Flatten for global metric
+    median_flat = median.flatten()
+    truth_flat  = truth.flatten()
+    rmse = np.sqrt(np.mean((median_flat - truth_flat) ** 2))
+    # Linear Correlation coefficient
+    corr = np.corrcoef(truth_flat, median_flat)[0, 1]
+    print(f"\n[{label}] RMSE (log10 scale):   {rmse:.4f}")
+    print(f"[{label}] Linear Correlation:     {corr:.4f}")
+    print(f"[{label}] Approx flux error:      {(10**rmse):.1f}× factor")
+    return rmse, corr
 
 # ─── Cell 7: Main Pipeline ────────────────────────────────────────────────────
 print("=" * 70)
-print("KAVACH TFT — 3-Stage Training Pipeline")
+print("KAVACH TFT — 3-Stage Training Pipeline (Strict Train/Val/Test Split)")
 print("=" * 70)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# STRICT 3-WAY DATA SPLIT — As per ISRO mentor directive:
+#   TRAINING   : OMNI 11-year PreTraining + GSAT-19 2017/2018 Fine-Tuning
+#   VALIDATION : May 2024 G5 Storm  ← used during training to monitor progress
+#   TEST (BLIND): Oct 2024 G4 Storm  ← NEVER seen during training; final eval only
+# ──────────────────────────────────────────────────────────────────────────────
 
 # Load data
 print("\nLoading datasets into memory...")
 pretrain_raw = prepare_pretrain(PRETRAIN_PATH)
 finetune_raw = prepare_finetune(FINETUNE_PATH)
 
-# Load both May and Oct 2024 for combined Level-3 validation
-val_may = prepare_benchmark(VAL_MAY_PATH)
-val_oct = prepare_benchmark(VAL_OCT_PATH)
-val_raw = np.vstack([val_may, val_oct])
-print(f"[STAGE 3] Combined Validation rows (May + Oct): {len(val_raw):,}")
+# VALIDATION SET: May 2024 G5 Mother's Day Storm
+# Used during Stage 1 & 2 to monitor when the model is learning correctly.
+val_raw = prepare_benchmark(VAL_MAY_PATH)
+print(f"[VALIDATION SET] May 2024 G5 Storm rows: {len(val_raw):,}")
 
-# Compute global normalizer and scale
+# BLIND TEST SET: October 2024 G4 Aurora Storm
+# Completely locked away. Zero interaction during training.
+# Only evaluated ONCE after training is fully complete.
+test_raw = prepare_benchmark(VAL_OCT_PATH)
+print(f"[BLIND TEST SET] Oct 2024 G4 Storm rows: {len(test_raw):,}")
+print("[BLIND TEST SET] Oct 2024 data is LOCKED — will not be seen until Stage 3 final evaluation.")
+
+# Compute global normalizer ONLY from training data
+# (Scaler must never see validation or test data)
 mean, std     = compute_global_scaler([pretrain_raw, finetune_raw])
 pretrain_norm = normalize(pretrain_raw, mean, std)
 finetune_norm = normalize(finetune_raw, mean, std)
-val_norm      = normalize(val_raw,      mean, std)
+val_norm      = normalize(val_raw,  mean, std)   # Apply same scaler to val
+test_norm     = normalize(test_raw, mean, std)   # Apply same scaler to test
 
 # Build sequences
 print("\nBuilding training sequences...")
 X_pre,  y_pre  = make_sequences(pretrain_norm, pretrain_raw, stride=72)   # stride=6h
 X_fine, y_fine = make_sequences(finetune_norm, finetune_raw, stride=36)   # stride=3h
-X_val,  y_val  = make_sequences(val_norm,      val_raw,      stride=36)
+X_val,  y_val  = make_sequences(val_norm,      val_raw,      stride=36)   # Validation (May 2024)
+X_test, y_test = make_sequences(test_norm,     test_raw,     stride=36)   # Blind Test (Oct 2024)
 
 print(f"Pre-train sequences:  {len(X_pre):,}")
 print(f"Fine-tune sequences:  {len(X_fine):,}")
-print(f"Validation sequences: {len(X_val):,}")
+print(f"Validation sequences: {len(X_val):,}  (May 2024 — seen during training)")
+print(f"Blind Test sequences: {len(X_test):,}  (Oct 2024 — LOCKED until Stage 3)")
 
 X_pre_t  = torch.tensor(X_pre,  dtype=torch.float32)
 y_pre_t  = torch.tensor(y_pre,  dtype=torch.float32)
@@ -415,22 +438,35 @@ X_fine_t = torch.tensor(X_fine, dtype=torch.float32)
 y_fine_t = torch.tensor(y_fine, dtype=torch.float32)
 X_val_t  = torch.tensor(X_val,  dtype=torch.float32)
 y_val_t  = torch.tensor(y_val,  dtype=torch.float32)
+X_test_t = torch.tensor(X_test, dtype=torch.float32)
+y_test_t = torch.tensor(y_test, dtype=torch.float32)
 
 # ─── STAGE 1: Pre-train on 11-year OMNI ──────────────────────────────────────
+print("\n" + "="*70)
+print("STAGE 1: PRE-TRAINING on 11-Year OMNI Dataset")
+print("="*70)
 model = KAVACH_TFT(num_features=10, hidden_size=128, lstm_layers=2, num_quantiles=5).to(DEVICE)
 model = train_stage(model, X_pre_t, y_pre_t, epochs=15, lr=3e-4, batch_size=64, label="STAGE-1 PRE-TRAIN")
-evaluate(model, X_val_t, y_val_t)
+# Monitor progress on MAY 2024 validation set
+evaluate(model, X_val_t, y_val_t, label="STAGE-1 VAL (May 2024)")
 
-# ─── STAGE 2: Fine-tune on 2017/2018 GOES+ULF (transfer learning) ────────────
-# Lower LR so we don't overwrite pre-trained weights
-model = train_stage(model, X_fine_t, y_fine_t, epochs=20, lr=5e-5, batch_size=32, label="STAGE-2 FINE-TUNE")
-evaluate(model, X_val_t, y_val_t)
-
-# ─── STAGE 3: Final validation report ────────────────────────────────────────
+# ─── STAGE 2: Fine-tune on 2017/2018 GSAT-19 data (transfer learning) ─────────
 print("\n" + "="*70)
-print("STAGE 3: FINAL VALIDATION ON MAY 2024 & OCT 2024 TARGETS")
+print("STAGE 2: FINE-TUNING on 2017/2018 GSAT-19 GRASP Dataset")
 print("="*70)
-evaluate(model, X_val_t, y_val_t)
+# Lower LR to preserve pre-trained physics knowledge
+model = train_stage(model, X_fine_t, y_fine_t, epochs=20, lr=5e-5, batch_size=32, label="STAGE-2 FINE-TUNE")
+# Monitor progress on MAY 2024 validation set
+evaluate(model, X_val_t, y_val_t, label="STAGE-2 VAL (May 2024)")
+
+# ─── STAGE 3: FINAL BLIND TEST — October 2024 G4 Aurora Storm ────────────────
+# This is the first and ONLY time the model sees the October 2024 storm.
+# These metrics represent true out-of-sample operational performance.
+print("\n" + "="*70)
+print("STAGE 3: FINAL BLIND TEST — October 2024 G4 Aurora Storm")
+print("(Model has NEVER seen this data — true zero-shot evaluation)")
+print("="*70)
+evaluate(model, X_test_t, y_test_t, label="STAGE-3 BLIND TEST (Oct 2024)")
 
 # ─── Cell 8: Save Weights & Scaler ───────────────────────────────────────────
 os.makedirs("/kaggle/working/weights", exist_ok=True)
