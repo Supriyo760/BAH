@@ -277,9 +277,13 @@ def prepare_benchmark(path):
     df[num_cols] = df[num_cols].bfill().ffill()
 
     # Standardize column names for the 10-feature architecture
-    if 'electron_flux' in df.columns:
-        df['log_electron_flux'] = df['log_electron_flux'] if 'log_electron_flux' in df.columns \
-                                  else np.log10(np.maximum(df['electron_flux'], 1e-5))
+    if 'log_electron_flux' not in df.columns:
+        if 'log_flux' in df.columns:
+            df['log_electron_flux'] = df['log_flux']
+        elif 'electron_flux' in df.columns:
+            df['log_electron_flux'] = np.log10(np.maximum(df['electron_flux'], 1e-5))
+        elif 'flux' in df.columns:
+            df['log_electron_flux'] = np.log10(np.maximum(df['flux'], 1e-5))
 
     df['BY_GSM'] = df.get('BY_GSM', df.get('By_gsm', df.get('BY', 0.0)))
     df['BZ_GSM'] = df.get('BZ_GSM', df.get('Bz_gsm', df.get('BZ', 0.0)))
