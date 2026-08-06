@@ -763,8 +763,8 @@ if is_benchmark:
                 showlegend=(row_num==1)
             ), row=row_num, col=1)
             
-            # Scatter Plot (Right Column)
-            valid = ~np.isnan(pred_series.values) & ~np.isnan(df['log_flux'].values)
+            # Scatter Plot (Right Column) — filter out sensor dropouts (flux <= 1.1 pfu)
+            valid = ~np.isnan(pred_series.values) & ~np.isnan(df['log_flux'].values) & (df['log_flux'].values > 0.05)
             if valid.any():
                 obs_vals = 10**df['log_flux'].values[valid]
                 pred_vals = 10**pred_series.values[valid]
@@ -772,16 +772,16 @@ if is_benchmark:
                 fig.add_trace(go.Scatter(
                     x=obs_vals, y=pred_vals,
                     mode="markers",
-                    marker=dict(color="#000000", size=2.5, opacity=0.35),
+                    marker=dict(color="#000000", size=3, opacity=0.4),
                     name="Data Points",
                     showlegend=False
                 ), row=row_num, col=2)
                 
-                # 1:1 Identity Blue Line
+                # 1:1 Identity Blue Line (1 to 10,000 pfu range)
                 fig.add_trace(go.Scatter(
-                    x=[1e-1, 1e6], y=[1e-1, 1e6],
+                    x=[1, 1e4], y=[1, 1e4],
                     mode="lines",
-                    line=dict(color="#2563EB", width=1.5),
+                    line=dict(color="#2563EB", width=1.8),
                     name="1:1 Line",
                     showlegend=False
                 ), row=row_num, col=2)
@@ -862,9 +862,9 @@ if is_benchmark:
         fig.update_yaxes(type="log", title="Flux [pfu]" if i==2 else "", range=[0, 6], showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=1)
         fig.update_xaxes(showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=1)
         
-        # Scatter Plot Axes (Right)
-        fig.update_xaxes(type="log", range=[-1, 6], title="Observed" if i==3 else "", showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=2)
-        fig.update_yaxes(type="log", range=[-1, 6], title="Predicted" if i==2 else "", showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=2)
+        # Scatter Plot Axes (Right Column) — focused on 1 to 10,000 pfu (range [0, 4])
+        fig.update_xaxes(type="log", range=[0, 4], title="Observed [pfu]" if i==3 else "", showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=2)
+        fig.update_yaxes(type="log", range=[0, 4], title="Predicted [pfu]" if i==2 else "", showgrid=True, gridcolor="#E2E8F0", zeroline=False, row=i, col=2)
         
     fig.update_xaxes(title="TIME (UTC)", row=3, col=1)
 else:
