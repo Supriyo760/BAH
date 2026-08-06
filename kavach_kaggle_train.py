@@ -101,18 +101,20 @@ class PhysicsInformedPinballLoss(nn.Module):
 # Kaggle input paths — adjust if dataset names differ
 PRETRAIN_PATH  = "/kaggle/input/kavach-isro-datasets/Kaggle_PreTraining_Dataset.csv"
 FINETUNE_PATH  = "/kaggle/input/kavach-isro-datasets/Kaggle_FineTuning_Dataset.csv"
-VAL_PATH       = "/kaggle/input/kavach-isro-datasets/Kaggle_Validation_March2015.csv"
+VAL_MAY_PATH   = "/kaggle/input/kavach-isro-datasets/may_2024_benchmark.csv"
+VAL_OCT_PATH   = "/kaggle/input/kavach-isro-datasets/oct_2024_benchmark.csv"
 
 # Fallback: check current directory, kaggle inputs, and cloned repo
 search_paths = [
     "/kaggle/input",
-    "/kaggle/working/BAH/DataSets",
-    "./DataSets"
+    "/kaggle/working/BAH",
+    "."
 ]
 
 for attr, name in [("PRETRAIN_PATH", "Kaggle_PreTraining_Dataset.csv"),
                    ("FINETUNE_PATH", "Kaggle_FineTuning_Dataset.csv"),
-                   ("VAL_PATH", "Kaggle_Validation_March2015.csv")]:
+                   ("VAL_MAY_PATH", "may_2024_benchmark.csv"),
+                   ("VAL_OCT_PATH", "oct_2024_benchmark.csv")]:
     if not os.path.exists(globals()[attr]):
         found = False
         for search_dir in search_paths:
@@ -125,9 +127,10 @@ for attr, name in [("PRETRAIN_PATH", "Kaggle_PreTraining_Dataset.csv"),
                         break
             if found: break
 
-print(f"\nPre-train : {PRETRAIN_PATH} — exists: {os.path.exists(PRETRAIN_PATH)}")
-print(f"Fine-tune : {FINETUNE_PATH} — exists: {os.path.exists(FINETUNE_PATH)}")
-print(f"Validation: {VAL_PATH}      — exists: {os.path.exists(VAL_PATH)}")
+print(f"\nPre-train   : {PRETRAIN_PATH} — exists: {os.path.exists(PRETRAIN_PATH)}")
+print(f"Fine-tune   : {FINETUNE_PATH} — exists: {os.path.exists(FINETUNE_PATH)}")
+print(f"Val (May)   : {VAL_MAY_PATH}  — exists: {os.path.exists(VAL_MAY_PATH)}")
+print(f"Val (Oct)   : {VAL_OCT_PATH}  — exists: {os.path.exists(VAL_OCT_PATH)}")
 
 # ─── Cell 4: Feature Engineering ─────────────────────────────────────────────
 # Mentor-approved strict 10-feature architecture
@@ -245,13 +248,13 @@ def prepare_finetune(path):
     print(f"[STAGE 2] Rows after cleaning: {len(df):,}")
     return df[FEATURE_COLS].values.astype(np.float32)
 
-def prepare_validation(path):
-    """Prepares the March 2015 held-out validation dataset."""
+def prepare_benchmark(path):
+    """Prepares modern benchmark datasets (May/Oct 2024) for true out-of-sample validation."""
     print(f"\n[STAGE 3] Loading validation data from {path}...")
     df = pd.read_csv(path, parse_dates=['datetime'], index_col='datetime')
     df.sort_index(inplace=True)
 
-    # FIX 2: Replace NOAA missing value placeholders before they pollute the validation metrics
+    # Replace NOAA missing value placeholders before they pollute the validation metrics
     num_cols = df.select_dtypes(include=[np.number]).columns
     df[num_cols] = df[num_cols].replace(NOAA_FILL_VALS, np.nan)
     df[num_cols] = df[num_cols].interpolate(method='linear', limit_direction='both')
@@ -281,7 +284,7 @@ def prepare_validation(path):
     df['MLT_cos'] = np.cos(mlt * 2 * np.pi / 24)
 
     df.dropna(subset=FEATURE_COLS, inplace=True)
-    print(f"[STAGE 3] Validation rows: {len(df):,}")
+    print(f"Loaded {len(df):,} benchmark rows.")
     return df[FEATURE_COLS].values.astype(np.float32)
 
 # ─── Cell 5: Normalization (Global — fit on combined pre-train + fine-tune) ───
@@ -364,17 +367,21 @@ print("KAVACH TFT — 3-Stage Training Pipeline")
 print("=" * 70)
 
 # Load data
-pretrain_raw  = prepare_pretrain(PRETRAIN_PATH)
-finetune_raw  = prepare_finetune(FINETUNE_PATH)
-val_raw       = prepare_validation(VAL_PATH)
+print("\nLoading datasets into memory...")
+pretrain_raw = prepare_pretrain(PRETRAIN_PATH)
+finetune_raw = prepare_finetune(FINETUNE_PATH)
 
-# Compute global scaler from BOTH training sets combined
-mean, std = compute_global_scaler([pretrain_raw, finetune_raw])
+# Load both May and Oct 2024 for combined Level-3 validation
+val_may = prepare_benchmark(VAL_MAY_PATH)
+val_oct = prepare_benchmark(VAL_OCT_PATH)
+val_raw = np.vstack([val_may, val_oct])
+print(f"[STAGE 3] Combined Validation rows (May + Oct): {len(val_raw):,}")
 
-# Normalize all sets
-pretrain_norm = normalize(pretrain_raw,  mean, std)
-finetune_norm = normalize(finetune_raw,  mean, std)
-val_norm      = normalize(val_raw,        mean, std)
+# Compute global normalizer and scale
+mean, std     = compute_global_scaler([pretrain_raw, finetune_raw])
+pretrain_norm = normalize(pretrain_raw, mean, std)
+finetune_norm = normalize(finetune_raw, mean, std)
+val_norm      = normalize(val_raw,      mean, std)
 
 # Build sequences
 print("\nBuilding training sequences...")
@@ -405,7 +412,7 @@ evaluate(model, X_val_t, y_val_t)
 
 # ─── STAGE 3: Final validation report ────────────────────────────────────────
 print("\n" + "="*70)
-print("STAGE 3: FINAL VALIDATION ON MARCH 2015 HELD-OUT DATA")
+print("STAGE 3: FINAL VALIDATION ON MAY 2024 & OCT 2024 TARGETS")
 print("="*70)
 evaluate(model, X_val_t, y_val_t)
 
