@@ -180,12 +180,14 @@ def prepare_pretrain(path):
     df['Vsw']    = df.get('Vsw',    df.get('Flow_Speed',  pd.Series(400.0, index=df.index)))
     df['Pdyn']   = df.get('Pdyn',   df.get('Flow_Pressure', pd.Series(2.0, index=df.index)))
 
-    # ── Physics-based proxies for features absent from pre-training CSV ──
-    # Map BY_GSM if it exists under alternative names. If completely absent, 
-    # add a tiny random noise so the standard deviation is not exactly 0.0, 
-    # preventing the Variable Selection Network from permanently dead-weighting it.
+    # BY_GSM: The 11-year OMNI pre-training CSV does not contain BY_GSM.
+    # Use flat zeros — the Variable Selection Network will correctly learn to
+    # down-weight this feature during pre-training, then re-activate it during
+    # Stage 2 fine-tuning when real BY_GSM values appear in the GSAT-19 dataset.
+    # WARNING: Do NOT use random noise here — it teaches the model spurious 
+    # correlations between noise and electron flux, collapsing fine-tune LC.
     if 'BY_GSM' not in df.columns and 'By_GSM' not in df.columns and 'BY' not in df.columns:
-        df['BY_GSM'] = np.random.normal(0, 0.1, size=len(df))
+        df['BY_GSM'] = 0.0
     else:
         df['BY_GSM'] = df.get('BY_GSM', df.get('By_GSM', df.get('BY')))
 
@@ -454,7 +456,7 @@ print("\n" + "="*70)
 print("STAGE 1: PRE-TRAINING on 11-Year OMNI Dataset")
 print("="*70)
 model = KAVACH_TFT(num_features=10, hidden_size=128, lstm_layers=2, num_quantiles=5).to(DEVICE)
-model = train_stage(model, X_pre_t, y_pre_t, epochs=30, lr=3e-4, batch_size=64, label="STAGE-1 PRE-TRAIN")
+model = train_stage(model, X_pre_t, y_pre_t, epochs=20, lr=3e-4, batch_size=64, label="STAGE-1 PRE-TRAIN")
 # Monitor progress on MAY 2024 validation set
 evaluate(model, X_val_t, y_val_t, label="STAGE-1 VAL (May 2024)")
 
