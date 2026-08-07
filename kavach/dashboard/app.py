@@ -1081,6 +1081,179 @@ else:
 
 st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
 
+# ─── Model Performance & Prediction vs. Observation Section ───────────────────
+st.markdown('<p class="section-label">GOES 2013–2023 & Out-of-Sample Performance Evaluation</p>', unsafe_allow_html=True)
+
+# Load cached evaluation metrics JSON
+eval_json_path = os.path.join(ROOT_DIR, "kavach", "data", "historical", "goes_train_val_test_eval.json")
+eval_data = None
+if os.path.exists(eval_json_path):
+    try:
+        import json
+        with open(eval_json_path, "r") as f:
+            eval_data = json.load(f)
+    except Exception:
+        eval_data = None
+
+eval_tab_train, eval_tab_val, eval_tab_test, eval_tab_timeline = st.tabs([
+    "🏋️‍♂️ Training Set (2013–2023 Baseline)",
+    "🎯 Validation Set (May 2024 G5 Storm)",
+    "🔒 Blind Test Set (October 2024 G4 Storm)",
+    "📅 Full 11-Year Timeline (2013–2023)"
+])
+
+def render_pred_vs_obs_chart(obs, pred, title_prefix, color="#2563EB"):
+    obs_arr = np.array(obs)
+    pred_arr = np.array(pred)
+    
+    mask = ~np.isnan(obs_arr) & ~np.isnan(pred_arr)
+    if not mask.any():
+        st.warning("No data available for evaluation.")
+        return
+    
+    o = obs_arr[mask]
+    p = pred_arr[mask]
+    
+    lc = float(np.corrcoef(o, p)[0, 1]) if len(o) > 1 else 0.0
+    rmse = float(np.sqrt(np.mean((o - p)**2)))
+    mae = float(np.mean(np.abs(o - p)))
+    
+    # Render Metrics
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric(f"{title_prefix} Linear Correlation (LC)", f"{lc:.3f}")
+    c2.metric(f"{title_prefix} RMSE (log10)", f"{rmse:.4f}")
+    c3.metric(f"{title_prefix} MAE (log10)", f"{mae:.4f}")
+    c4.metric("Flux Error Factor", f"{(10**rmse):.1f}×")
+    
+    # Render Plotly Scatter
+    fig_scatter = go.Figure()
+    
+    # 1:1 Reference Line
+    min_val = min(o.min(), p.min(), 0.0)
+    max_val = max(o.max(), p.max(), 6.0)
+    fig_scatter.add_trace(go.Scatter(
+        x=[min_val, max_val], y=[min_val, max_val],
+        mode="lines", name="Ideal 1:1 Alignment (y = x)",
+        line=dict(color="#DC2626", width=2, dash="dash")
+    ))
+    
+    # Scatter points
+    fig_scatter.add_trace(go.Scatter(
+        x=o, y=p, mode="markers",
+        name="Predictions vs. Observations",
+        marker=dict(color=color, size=4, opacity=0.6)
+    ))
+    
+    # Linear Regression trendline
+    if len(o) > 2:
+        m, b_line = np.polyfit(o, p, 1)
+        x_trend = np.linspace(min_val, max_val, 100)
+        y_trend = m * x_trend + b_line
+        fig_scatter.add_trace(go.Scatter(
+            x=x_trend, y=y_trend, mode="lines",
+            name=f"Model Trendline (slope={m:.2f})",
+            line=dict(color="#00E5FF", width=2)
+        ))
+        
+    fig_scatter.update_layout(
+        height=380,
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        font=dict(family="Inter, sans-serif", size=12, color="#000000"),
+        xaxis=dict(title="Observed log₁₀(Electron Flux) [pfu]", showgrid=True, gridcolor="#E2E8F0", zeroline=False),
+        yaxis=dict(title="Predicted log₁₀(Electron Flux) [pfu]", showgrid=True, gridcolor="#E2E8F0", zeroline=False),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)", font=dict(color="#000000")),
+        margin=dict(l=60, r=20, t=30, b=50)
+    )
+    st.plotly_chart(fig_scatter, use_container_width=True, theme=None)
+
+with eval_tab_train:
+    st.markdown('<p class="section-label">Training Baseline Performance (GOES 2013–2023 Corpus)</p>', unsafe_allow_html=True)
+    if eval_data and "train" in eval_data and len(eval_data["train"]["observed_log"]) > 0:
+        render_pred_vs_obs_chart(
+            eval_data["train"]["observed_log"],
+            eval_data["train"]["predicted_log"],
+            title_prefix="Training",
+            color="#2563EB"
+        )
+    else:
+        st.info("Generating training set statistics... Please refresh.")
+
+with eval_tab_val:
+    st.markdown('<p class="section-label">Validation Performance (May 2024 G5 Mother\'s Day Superstorm)</p>', unsafe_allow_html=True)
+    if eval_data and "validation" in eval_data and len(eval_data["validation"]["observed_log"]) > 0:
+        render_pred_vs_obs_chart(
+            eval_data["validation"]["observed_log"],
+            eval_data["validation"]["predicted_log"],
+            title_prefix="Validation",
+            color="#059669"
+        )
+    else:
+        st.info("Validation dataset benchmark data loading...")
+
+with eval_tab_test:
+    st.markdown('<p class="section-label">Blind Test Set Evaluation (October 2024 G4 Aurora Storm — Zero-Shot Unseen Data)</p>', unsafe_allow_html=True)
+    st.info("🔒 **Strict Out-of-Sample Protocol**: Model was never exposed to October 2024 data during training or hyperparameter tuning.")
+    if eval_data and "test" in eval_data and len(eval_data["test"]["observed_log"]) > 0:
+        render_pred_vs_obs_chart(
+            eval_data["test"]["observed_log"],
+            eval_data["test"]["predicted_log"],
+            title_prefix="Blind Test",
+            color="#EA580C"
+        )
+    else:
+        st.info("Blind test benchmark loading...")
+
+with eval_tab_timeline:
+    st.markdown('<p class="section-label">11-Year GOES Timeline (2013–2023 Solar Cycle Explorer)</p>', unsafe_allow_html=True)
+    if eval_data and "train" in eval_data and len(eval_data["train"]["timestamps"]) > 0:
+        ts = pd.to_datetime(eval_data["train"]["timestamps"])
+        obs_t = np.array(eval_data["train"]["observed_log"])
+        pred_t = np.array(eval_data["train"]["predicted_log"])
+        
+        epoch_choice = st.radio(
+            "Filter Solar Cycle Epoch:",
+            ["Full Decade (2013–2023)", "Solar Cycle 24 Peak (2013–2015)", "Solar Minimum (2018–2020)", "Solar Cycle 25 Acceleration (2021–2023)"],
+            horizontal=True
+        )
+        
+        if epoch_choice == "Solar Cycle 24 Peak (2013–2015)":
+            epoch_mask = (ts >= '2013-01-01') & (ts <= '2015-12-31')
+        elif epoch_choice == "Solar Minimum (2018–2020)":
+            epoch_mask = (ts >= '2018-01-01') & (ts <= '2020-12-31')
+        elif epoch_choice == "Solar Cycle 25 Acceleration (2021–2023)":
+            epoch_mask = (ts >= '2021-01-01') & (ts <= '2023-12-31')
+        else:
+            epoch_mask = np.ones(len(ts), dtype=bool)
+            
+        fig_timeline = go.Figure()
+        fig_timeline.add_trace(go.Scatter(
+            x=ts[epoch_mask], y=10**obs_t[epoch_mask],
+            name="Observed GOES Electron Flux",
+            line=dict(color="#2563EB", width=1.5)
+        ))
+        fig_timeline.add_trace(go.Scatter(
+            x=ts[epoch_mask], y=10**pred_t[epoch_mask],
+            name="TFT Model Prediction (P50)",
+            line=dict(color="#F59E0B", width=1.5)
+        ))
+        fig_timeline.update_layout(
+            height=380,
+            paper_bgcolor="#FFFFFF",
+            plot_bgcolor="#FFFFFF",
+            yaxis_type="log",
+            font=dict(family="Inter, sans-serif", size=12, color="#000000"),
+            xaxis=dict(title="DATE (UTC)", showgrid=True, gridcolor="#E2E8F0", zeroline=False),
+            yaxis=dict(title="Electron Flux (pfu) [>2 MeV]", showgrid=True, gridcolor="#E2E8F0", zeroline=False, range=[0, 6]),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)", font=dict(color="#000000")),
+            margin=dict(l=60, r=20, t=30, b=50)
+        )
+        st.plotly_chart(fig_timeline, use_container_width=True, theme=None)
+    else:
+        st.info("Timeline data loading...")
+
+st.markdown("<hr style='margin:24px 0'>", unsafe_allow_html=True)
+
 # ─── Tabbed Diagnostics & Metrics ─────────────────────────────────────────────
 tab_drivers, tab_importance, tab_specs = st.tabs([
     "Solar Wind Drivers", 
