@@ -456,7 +456,7 @@ print("\n" + "="*70)
 print("STAGE 1: PRE-TRAINING on 11-Year OMNI Dataset")
 print("="*70)
 model = KAVACH_TFT(num_features=10, hidden_size=128, lstm_layers=2, num_quantiles=5).to(DEVICE)
-model = train_stage(model, X_pre_t, y_pre_t, epochs=20, lr=3e-4, batch_size=64, label="STAGE-1 PRE-TRAIN")
+model = train_stage(model, X_pre_t, y_pre_t, epochs=15, lr=3e-4, batch_size=64, label="STAGE-1 PRE-TRAIN")
 # Monitor progress on MAY 2024 validation set
 evaluate(model, X_val_t, y_val_t, label="STAGE-1 VAL (May 2024)")
 
@@ -465,7 +465,7 @@ print("\n" + "="*70)
 print("STAGE 2: FINE-TUNING on 2017/2018 GSAT-19 GRASP Dataset")
 print("="*70)
 # Lower LR to preserve pre-trained physics knowledge
-model = train_stage(model, X_fine_t, y_fine_t, epochs=40, lr=5e-5, batch_size=32, label="STAGE-2 FINE-TUNE")
+model = train_stage(model, X_fine_t, y_fine_t, epochs=20, lr=5e-5, batch_size=32, label="STAGE-2 FINE-TUNE")
 # Monitor progress on MAY 2024 validation set
 evaluate(model, X_val_t, y_val_t, label="STAGE-2 VAL (May 2024)")
 
