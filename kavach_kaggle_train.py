@@ -39,21 +39,6 @@ print(f"CUDA available: {torch.cuda.is_available()}")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Training on: {DEVICE}")
 
-# ─── SEED FOR REPRODUCIBILITY ───────────────────────────────────────────────
-# This completely eliminates random variance between Kaggle runs.
-import random
-def set_seed(seed=42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-set_seed(42)
-print("Random seed locked to 42 for reproducible metrics.")
-
 # ─── Cell 2: Model Architecture (identical to kavach/models/tft_model.py) ────
 class GatedResidualNetwork(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.1):
@@ -195,16 +180,10 @@ def prepare_pretrain(path):
     df['Vsw']    = df.get('Vsw',    df.get('Flow_Speed',  pd.Series(400.0, index=df.index)))
     df['Pdyn']   = df.get('Pdyn',   df.get('Flow_Pressure', pd.Series(2.0, index=df.index)))
 
-    # BY_GSM: The 11-year OMNI pre-training CSV does not contain BY_GSM.
-    # Use flat zeros — the Variable Selection Network will correctly learn to
-    # down-weight this feature during pre-training, then re-activate it during
-    # Stage 2 fine-tuning when real BY_GSM values appear in the GSAT-19 dataset.
-    # WARNING: Do NOT use random noise here — it teaches the model spurious 
-    # correlations between noise and electron flux, collapsing fine-tune LC.
-    if 'BY_GSM' not in df.columns and 'By_GSM' not in df.columns and 'BY' not in df.columns:
-        df['BY_GSM'] = 0.0
-    else:
-        df['BY_GSM'] = df.get('BY_GSM', df.get('By_GSM', df.get('BY')))
+    # ── Physics-based proxies for features absent from pre-training CSV ──
+    # BY_GSM: no data available — use 0 (genuinely unavailable, model will learn it
+    #         matters only in fine-tuning where real values exist)
+    df['BY_GSM'] = df.get('BY_GSM', pd.Series(0.0, index=df.index))
 
     # AE index proxy: Burton et al. (1975) — AE correlates with |Bz|*Vsw coupling
     # AE ≈ 300 * |Bz| * Vsw / 1000  (rough but physically motivated)
