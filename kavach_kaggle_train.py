@@ -39,6 +39,21 @@ print(f"CUDA available: {torch.cuda.is_available()}")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Training on: {DEVICE}")
 
+# ─── SEED FOR REPRODUCIBILITY ───────────────────────────────────────────────
+# This completely eliminates random variance between Kaggle runs.
+import random
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+set_seed(42)
+print("Random seed locked to 42 for reproducible metrics.")
+
 # ─── Cell 2: Model Architecture (identical to kavach/models/tft_model.py) ────
 class GatedResidualNetwork(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.1):
